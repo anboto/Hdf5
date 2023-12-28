@@ -1,0 +1,11 @@
+description "HDF5 file I/O library demo\377";
+
+uses
+	Core,
+	Hdf5;
+
+file
+	Hdf5_demo_cl.cpp;
+
+mainconfig
+	"" = "";
