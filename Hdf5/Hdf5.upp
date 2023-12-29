@@ -9,6 +9,7 @@ options
 	-DHAVE_ZLIB;
 
 file
+	srcdoc.tpp,
 	hdf5.cpp,
 	hdf5.h,
 	Copying;
