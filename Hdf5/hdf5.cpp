@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2021 - 2022, the Anboto author and contributors
+// Copyright 2021 - 2023, the Anboto author and contributors
 #include <Core/Core.h>
 #include <Eigen/Eigen.h>
 
@@ -146,7 +146,7 @@ void Hdf5File::GetData0(String name, HidO &obj_id, hid_t &datatype_id, hid_t &ds
 	   
     sz = 1;
     for (int id = 0; id < ndims; ++id) 
-        sz *= dims[id];
+        sz *= int(dims[id]);
 }
 
 void Hdf5File::GetType(String name, H5T_class_t &type, Vector<hsize_t> &dims) {
@@ -218,7 +218,7 @@ String Hdf5File::GetString(String name) {
 	H5S_class_t space_class = H5Sget_simple_extent_type(dspace);
 	
     if (space_class == H5S_SCALAR) {
-        StringBuffer bstr(len);
+        StringBuffer bstr((int)len);
 		if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, ~bstr) >= 0) 
 			return String(bstr);
 		throw Exc("Problem reading scalar string");

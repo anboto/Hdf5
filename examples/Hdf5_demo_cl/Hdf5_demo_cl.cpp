@@ -100,8 +100,6 @@ void WriteDataset(String file) {
 }
 
 void IterateDataset(hid_t group_id, String parent, int indentation, bool printdata) {
-	herr_t status;
-	
     // Iterate over objects in the group and identify datasets
     H5G_info_t group_info;
     H5Gget_info(group_id, &group_info);
@@ -132,7 +130,7 @@ void IterateDataset(hid_t group_id, String parent, int indentation, bool printda
 					for (int id = 0; id < ndims; ++id) {
 						if (id > 0)
 							sdims += ",";	
-						sdims += FormatInt(dims[id]);
+						sdims += FormatInt(int(dims[id]));
 					}
 					if (ndims > 0)
 						sdims = "[" + sdims + "]";
@@ -154,9 +152,9 @@ void IterateDataset(hid_t group_id, String parent, int indentation, bool printda
 					    for (int id = 0; id < ndims; ++id) 
 							len /= dims[id];
 					    
-					    int sz = 1;
+					    hsize_t sz = 1;
 				        for (int id = 0; id < ndims; ++id) 
-				            sz *= dims[id];
+				            sz *= int(dims[id]);
 					        
 					    if (sz == 1) {
 					        UppLog() << ": ";
@@ -170,7 +168,7 @@ void IterateDataset(hid_t group_id, String parent, int indentation, bool printda
 					                UppLog() << i;
 					    	} else if (clss == H5T_STRING) {
 						        if (space_class == H5S_SCALAR) {
-						            StringBuffer bstr(len);
+						            StringBuffer bstr((int)len);
 		    						if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, ~bstr) >= 0) 
 		    							UppLog() << "'" << String(bstr) << "'";
 						        } else {
@@ -271,7 +269,6 @@ CONSOLE_APP_MAIN
 			if (false) {
 				Hdf5File hfile;
 				Vector<String> lst;
-				bool test;
 				
 				hfile.Load(file);
 				

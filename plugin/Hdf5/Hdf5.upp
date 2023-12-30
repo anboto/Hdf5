@@ -5,6 +5,8 @@ options(BUILDER_OPTION) NOWARNINGS;
 uses
 	Core;
 
+library(MSC) Shlwapi.lib;
+
 options
 	-DHAVE_ZLIB;
 
