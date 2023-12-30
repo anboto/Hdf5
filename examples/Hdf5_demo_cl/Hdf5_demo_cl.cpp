@@ -99,7 +99,7 @@ void WriteDataset(String file) {
     status = H5Fclose(file_id);
 }
 
-void IterateDataset(hid_t group_id, String parent, int indentation) {
+void IterateDataset(hid_t group_id, String parent, int indentation, bool printdata) {
 	herr_t status;
 	
     // Iterate over objects in the group and identify datasets
@@ -119,11 +119,13 @@ void IterateDataset(hid_t group_id, String parent, int indentation) {
             if (H5Oget_info(obj_id, &oinfo, H5O_INFO_BASIC) >= 0) {
                 String child = parent + "/" + obj_name;
             	if (oinfo.type == H5O_TYPE_GROUP) {
-                	printf("%sGroup: %s\n", ~sindentation, ~child);
-                	IterateDataset(obj_id, child, indentation+2);
+                	UppLog() << Format("%`Group: %s\n", sindentation, child);
+                	IterateDataset(obj_id, child, indentation+2, printdata);
             	} else if (oinfo.type == H5O_TYPE_DATASET) {
-                	hid_t dspace = H5Dget_space(obj_id);
+            		hid_t dspace = H5Dget_space(obj_id);
+            		H5S_class_t space_class = H5Sget_simple_extent_type(dspace);
                 	const int ndims = H5Sget_simple_extent_ndims(dspace);
+                	
                 	Buffer<hsize_t> dims(ndims);
 					H5Sget_simple_extent_dims(dspace, ~dims, NULL);
 					String sdims;
@@ -134,7 +136,7 @@ void IterateDataset(hid_t group_id, String parent, int indentation) {
 					}
 					if (ndims > 0)
 						sdims = "[" + sdims + "]";
-                	printf("%sDataset: %s%s", ~sindentation, ~child, ~sdims);
+                	UppLog() << Format("%`Dataset: %s%s", sindentation, child, sdims);
                 	
                  	// Get the datatype of the dataset
 				    hid_t datatype_id = H5Dget_type(obj_id);
@@ -142,90 +144,105 @@ void IterateDataset(hid_t group_id, String parent, int indentation) {
 					    // Determine the datatype class
 					    H5T_class_t clss = H5Tget_class(datatype_id);
 					    switch (clss) {
-					   	case H5T_INTEGER:	printf("(int)");	break;
-					   	case H5T_FLOAT:		printf("(float)");	break;
-					    case H5T_STRING:	printf("(string)");	break;
-					    default:			printf("(?)");
+					   	case H5T_INTEGER:	UppLog() << "(int)";	break;
+					   	case H5T_FLOAT:		UppLog() << "(float)";	break;
+					    case H5T_STRING:	UppLog() << "(string)";	break;
+					    default:			UppLog() << "(?)";
 					    }
 				    
 					    hsize_t len = H5Dget_storage_size(obj_id);
 					    for (int id = 0; id < ndims; ++id) 
 							len /= dims[id];
-						
-					    printf(" %d ", len);
 					    
-					    if (ndims == 1 && clss == H5T_STRING) {
-					        hsize_t size = H5Sget_simple_extent_npoints(dspace);
-					    	Buffer<char *> bstr(size);
-    						if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, ~bstr) >= 0) {
-    							String str = String(bstr[0]);
-    							Cout() << "'" << str << "'";
-    						}
-					    } else {
-					        Cout() << "\n";     
+					    int sz = 1;
+				        for (int id = 0; id < ndims; ++id) 
+				            sz *= dims[id];
 					        
-					        int sz = 1;
-					        for (int id = 0; id < ndims; ++id) 
-					            sz *= dims[id];
+					    if (sz == 1) {
+					        UppLog() << ": ";
+					        if (clss == H5T_FLOAT) {
+					            double d;
+					            if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, &d) >= 0) 
+					                UppLog() << d;
+					        } else if (clss == H5T_INTEGER) {
+					            double i;
+					            if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, &i) >= 0) 
+					                UppLog() << i;
+					    	} else if (clss == H5T_STRING) {
+						        if (space_class == H5S_SCALAR) {
+						            StringBuffer bstr(len);
+		    						if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, ~bstr) >= 0) 
+		    							UppLog() << "'" << String(bstr) << "'";
+						        } else {
+						            hsize_t size = H5Sget_simple_extent_npoints(dspace);
+							    	Buffer<char *> bstr(size);
+		    						if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, ~bstr) >= 0) {
+		    							String str = String(bstr[0]);
+		    							UppLog() << "'" << str << "'";
+		    						}
+						        }
+					    	}
+					        UppLog() << "\n";     
+					    } else if (printdata) {
+					        UppLog() << "\n";     
 					        
 					        if (clss == H5T_FLOAT) {
 					            Buffer<double> d(sz);
 					            if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, d) >= 0) {
 					                for (int r = 0; r < dims[0]; ++r) {
-					                    Cout() << sindentation << "  ";
+					                    UppLog() << sindentation << "  ";
 					                    if (ndims > 1) {
 					                		for (int c = 0; c < dims[1]; ++c)
-					                			Cout() << d[r*dims[1] + c] << " ";
-					                		Cout() << "\n";	
+					                			UppLog() << d[r*dims[1] + c] << " ";
+					                		UppLog() << "\n";	
 					                    } else
-					                        Cout() << d[r] << " ";
+					                        UppLog() << d[r] << " ";
 					                }
 					            }
 					        } else if (clss == H5T_INTEGER) {
 					            Buffer<int> d(sz);
 					            if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, d) >= 0) {
 					                for (int r = 0; r < dims[0]; ++r) {
-					                    Cout() << sindentation << "  ";
+					                    UppLog() << sindentation << "  ";
 					                    if (ndims > 1) {
 					                		for (int c = 0; c < dims[1]; ++c)
-					                			Cout() << d[r*dims[1] + c] << " ";
-					                		Cout() << "\n";	
+					                			UppLog() << d[r*dims[1] + c] << " ";
+					                		UppLog() << "\n";	
 					                    } else
-					                        Cout() << d[r] << " ";
+					                        UppLog() << d[r] << " ";
 					                }
 					            }
 					        } else  
-					        	Cout() << "\n";     
-					    }
+					        	UppLog() << "\n";     
+					    } else
+					    	UppLog() << "\n";    
 				    } else
-						Cout() << "\n";
+						UppLog() << "\n";
             	} else if (oinfo.type == H5O_TYPE_NAMED_DATATYPE) 
-                	printf("%sNamed data type: %s\n", ~sindentation, ~child);
+                	UppLog() << Format("%sNamed data type: %s\n", sindentation, child);
             	else if (oinfo.type == H5O_TYPE_MAP) 
-                	printf("%sMap: %s\n", ~sindentation, ~child);
+                	UppLog() << Format("%sMap: %s\n", sindentation, child);
             }
             H5Oclose(obj_id);
         }
     }
 }
 	
-bool IterateDataset(String file) {
-    // Open the HDF5 file
+bool IterateDataset(String file, bool printdata) {
     hid_t file_id = H5Fopen(file, H5F_ACC_RDONLY, H5P_DEFAULT);
     if (file_id < 0) {
-        fprintf(stderr, "Unable to open file.\n");
+        UppLog() << "Unable to open file.\n";
         return false;
     }
 
-    // Open the root group (you can also open other groups if datasets are stored in subgroups)
     hid_t group_id = H5Gopen2(file_id, "/", H5P_DEFAULT);
     if (group_id < 0) {
-        fprintf(stderr, "Unable to open root group.\n");
+        UppLog() << "Unable to open root group.\n";
         H5Fclose(file_id);
         return false;
     }
 	
-	IterateDataset(group_id, "", 0);
+	IterateDataset(group_id, "", 0, printdata);
 	
     // Close the group and file
     H5Gclose(group_id);
@@ -236,24 +253,54 @@ bool IterateDataset(String file) {
 
 CONSOLE_APP_MAIN
 {
-	String file = "data.h5";
+	StdLogSetup(LOG_COUT|LOG_FILE);
 	
-	CreateDataset(file);
-	WriteDataset(file);
-	IterateDataset(file);
-	ReadDataset(file);
+	const UVector<String>& command = CommandLine();
 	
-	Cout() << "\nProgram ended";
+	try {
+		if (command.GetCount() < 2) {
+			String file = "data.h5";
+		
+			CreateDataset(file);
+			WriteDataset(file);
+			IterateDataset(file, true);
+			ReadDataset(file);
+		} else {
+			String file = command[0];
+			
+			if (false) {
+				Hdf5File hfile;
+				Vector<String> lst;
+				bool test;
+				
+				hfile.Load(file);
+				
+				hfile.ChangeGroup("simulation_parameters");
+				Eigen::VectorXd T;
+				hfile.GetDouble("T", T);
+				double rho = hfile.GetDouble("rho");
+				double depth;
+				if (hfile.GetType("water_depth") == H5T_STRING) {
+					String str = hfile.GetString("water_depth");
+					if (str == "infinite")
+						depth = -1;
+					else
+						throw Exc(Format("Unknown depth '%s'", str));
+				} else 
+					depth = hfile.GetDouble("water_depth");
+				
+			
+			} else 
+				IterateDataset(file, command[1] == "true");
+		}
+	} catch (Exc err) {
+		UppLog() << "\n" << Format(t_("Problem found: %s"), err);
+		SetExitCode(-1);
+	}
+		
+	UppLog() << "\nProgram ended\n";
 	#ifdef flagDEBUG
 	ReadStdIn();
 	#endif
 }
 
-
-
-
-//Eigen::VectorXd v(dims[0]);
-//if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, v.data()) >= 0) 
-
-//	Eigen::MatrixXd m = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(d, dims[0], dims[1]);
-//	Cout() << m;
