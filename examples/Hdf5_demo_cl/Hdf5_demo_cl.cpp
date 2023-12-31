@@ -163,7 +163,7 @@ void IterateDataset(hid_t group_id, String parent, int indentation, bool printda
 					            if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, &d) >= 0) 
 					                UppLog() << d;
 					        } else if (clss == H5T_INTEGER) {
-					            double i;
+					            int i;
 					            if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, &i) >= 0) 
 					                UppLog() << i;
 					    	} else if (clss == H5T_STRING) {
@@ -257,38 +257,55 @@ CONSOLE_APP_MAIN
 	
 	try {
 		if (command.GetCount() < 2) {
-			String file = "data.h5";
-		
-			CreateDataset(file);
-			WriteDataset(file);
+			UppLog() << "\nHDF5 library test\n";
+			{
+				String file = "data.h5";
+			
+				CreateDataset(file);
+				WriteDataset(file);
+				IterateDataset(file, true);
+				ReadDataset(file);
+			}
+			UppLog() << "\nHDF5 wrapper test\n";
+			String file = "datalib.h5";
+			{			
+				Hdf5File hfile;
+				
+				if (!hfile.Create(file))
+					throw Exc("Problem creating file");
+				
+				hfile.CreateGroup("simulation_parameters");
+				hfile.ChangeGroup("simulation_parameters");
+				hfile.Set("number_integer", 23);
+				hfile.Set("number_double", 24.5);
+				hfile.Set("text", "hello");
+				Eigen::MatrixXd a(2, 3);
+				a << 1, 2, 3, 11, 22, 33;
+				hfile.Set("matrix_double", a);
+			}
+			{			
+				Hdf5File hfile;
+				
+				if (!hfile.Open(file))
+					throw Exc("Problem opening file");
+				
+				hfile.ChangeGroup("simulation_parameters");
+				int in = hfile.GetInt("number_integer");
+				VERIFY(in == 23);
+				double d = hfile.GetDouble("number_double");
+				VERIFY(d == 24.5);
+				String s = hfile.GetString("text");
+				VERIFY(s == "hello");
+				Eigen::MatrixXd m;
+				hfile.GetDouble("matrix_double", m);
+				VERIFY(m(1, 1) == 22);
+				VERIFY(m(1, 2) == 33);
+			}
 			IterateDataset(file, true);
-			ReadDataset(file);
 		} else {
 			String file = command[0];
 			
-			if (false) {
-				Hdf5File hfile;
-				Vector<String> lst;
-				
-				hfile.Load(file);
-				
-				hfile.ChangeGroup("simulation_parameters");
-				Eigen::VectorXd T;
-				hfile.GetDouble("T", T);
-				double rho = hfile.GetDouble("rho");
-				double depth;
-				if (hfile.GetType("water_depth") == H5T_STRING) {
-					String str = hfile.GetString("water_depth");
-					if (str == "infinite")
-						depth = -1;
-					else
-						throw Exc(Format("Unknown depth '%s'", str));
-				} else 
-					depth = hfile.GetDouble("water_depth");
-				
-			
-			} else 
-				IterateDataset(file, command[1] == "true");
+			IterateDataset(file, command[1] == "true");
 		}
 	} catch (Exc err) {
 		UppLog() << "\n" << Format(t_("Problem found: %s"), err);
