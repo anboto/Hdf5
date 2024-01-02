@@ -276,12 +276,12 @@ CONSOLE_APP_MAIN
 				
 				hfile.CreateGroup("simulation_parameters");
 				hfile.ChangeGroup("simulation_parameters");
-				hfile.Set("number_integer", 23);
-				hfile.Set("number_double", 24.5);
-				hfile.Set("text", "hello");
+				hfile.Set("number_integer", 23).SetDescription("This is an integer").SetUnits("m");
+				hfile.Set("number_double", 24.5).SetDescription("This is a double").SetUnits("kg");
+				hfile.Set("text", "hello").SetDescription("This is a string");
 				Eigen::MatrixXd a(2, 3);
 				a << 1, 2, 3, 11, 22, 33;
-				hfile.Set("matrix_double", a);
+				hfile.Set("matrix_double", a).SetDescription("This is matrix of double").SetUnits("kg-m^2 (rotation); kg (translation)");
 			}
 			{			
 				Hdf5File hfile;

@@ -8,52 +8,72 @@
 
 namespace Upp {
 
+class Hid {
+public:
+	Hid() {}
+	Hid(hid_t _id) : id(_id) {};
+	virtual void Close() = 0;
+	operator hid_t() const   {return id;};
+	
+protected:
+	hid_t id = -1;	
+};
 
-class HidO {
+class HidO : public Hid {
 public:
 	HidO() {}
-	HidO(hid_t loc_id, const char *name, hid_t lapl_id) {
-		Open(loc_id, name, lapl_id);
-	}
-	HidO(hid_t _id)		{id = _id;}
-	hid_t Open(hid_t loc_id, const char *name, hid_t lapl_id) {
-		id = H5Oopen(loc_id, name, lapl_id);
-		return id;
-	}
-	~HidO() {
-		if (id >= 0)
-			H5Oclose(id);
-	}
-	operator hid_t() const 			{return id;};
+	HidO(hid_t _id) : Hid(_id) {};
+	~HidO() 			 {Close();}
 	
-private:
-	hid_t id = -1;
+	void Close() {
+        if (id >= 0)
+            H5Oclose(id);
+        id = -1;
+    }
+    
+	HidO& operator=(hid_t newId) {
+        Close();
+        id = newId;
+        return *this;
+    }
 };
 
-class HidS {
+class HidS : public Hid {
 public:
-	HidS(hid_t _id)		{id = _id;}
-	~HidS() {
-		if (id >= 0)
-			H5Sclose(id);
-	}
-	operator hid_t() const 			{return id;};
+	HidS() {}
+	HidS(hid_t _id) : Hid(_id) {};
+	~HidS() 			 {Close();}
 	
-private:
-	hid_t id = -1;
+	void Close() {
+        if (id >= 0)
+            H5Sclose(id);
+        id = -1;
+    }
+    
+	HidS& operator=(hid_t newId) {
+        Close();
+        id = newId;
+        return *this;
+    }
 };
 
-class HidD {
+class HidD : public Hid {
 public:
-	HidD(hid_t _id)		{id = _id;}
-	~HidD() {
-		if (id >= 0)
-			H5Dclose(id);
-	}
-	operator hid_t() const 			{return id;};
+	HidD() {}
+	HidD(hid_t _id) : Hid(_id) {};
+	~HidD() 			 {Close();}
 	
-private:
-	hid_t id = -1;
+	void Close() {
+        if (id >= 0)
+            H5Dclose(id);
+        id = -1;
+    }
+	
+	HidD& operator=(hid_t newId) {
+        Close();
+        id = newId;
+        return *this;
+    }
 };
 
 class Hdf5File {
@@ -63,7 +83,7 @@ public:
 	~Hdf5File()				{Close();}
 	
 	bool Create(String file);		
-	bool Open(String file);
+	bool Open(String file, unsigned mode = H5F_ACC_RDWR);
 	void Close();
 	
 	bool ChangeGroup(String group);
@@ -95,20 +115,27 @@ public:
 	void GetDouble(String name, Vector<double> &data);
 	void GetDouble(String name, Eigen::MatrixXd &data);
 	
-	void Set(String name, int d);
-	void Set(String name, double d);
-	void Set(String name, String d);
-	void Set(String name, Eigen::VectorXd &d);
-	void Set(String name, Vector<double> &d);
-	void Set(String name, Eigen::MatrixXd &d);
+	Hdf5File &Set(String name, int d);
+	Hdf5File &Set(String name, double d);
+	Hdf5File &Set(String name, String d);
+	Hdf5File &Set(String name, Eigen::VectorXd &d);
+	Hdf5File &Set(String name, Vector<double> &d);
+	Hdf5File &Set(String name, Eigen::MatrixXd &d);
 	
-	void SurpressErrors() 				{H5Eset_auto2(H5E_DEFAULT, NULL, NULL);}
+	Hdf5File &SetDescription(String description);
+	Hdf5File &SetUnits(String units);
+	
+	String GetLastError();
+	void SurpressErrorMsgs() 				{H5Eset_auto2(H5E_DEFAULT, NULL, NULL);}
 
 private:
 	hid_t file_id = -1;
+	HidD dts_id;
 	Vector<hid_t> group_ids;
 	
 	void GetData0(String name, HidO &obj_id, hid_t &datatype_id, hid_t &dspace, int &sz, Vector<hsize_t> &dims);
+	static void SetAttributes0(hid_t dset_id, String attribute, String val);
+    static void SetAttributes(hid_t dset_id, String description, String units);
 };
 
 }
