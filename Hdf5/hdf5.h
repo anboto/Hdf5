@@ -92,7 +92,7 @@ public:
 	Vector<String> ListGroupGroups()	{return ListGroup(true, false);}
 	Vector<String> ListGroupDatasets()	{return ListGroup(false, true);}
 	void UpGroup();
-	bool CreateGroup(String group);
+	bool CreateGroup(String group, bool change = false);
 
 	bool Exist(String name, bool isgroup);
 	bool ExistDataset(String name)		{return Exist(name, false);}

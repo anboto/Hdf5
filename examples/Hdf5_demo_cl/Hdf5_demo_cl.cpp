@@ -274,8 +274,7 @@ CONSOLE_APP_MAIN
 				if (!hfile.Create(file))
 					throw Exc("Problem creating file");
 				
-				hfile.CreateGroup("simulation_parameters");
-				hfile.ChangeGroup("simulation_parameters");
+				hfile.CreateGroup("simulation_parameters", true);
 				hfile.Set("number_integer", 23).SetDescription("This is an integer").SetUnits("m");
 				hfile.Set("number_double", 24.5).SetDescription("This is a double").SetUnits("kg");
 				hfile.Set("text", "hello").SetDescription("This is a string");

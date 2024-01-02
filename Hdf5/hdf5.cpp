@@ -55,12 +55,17 @@ bool Hdf5File::Create(String file) {
 	return true;
 }
 
-bool Hdf5File::CreateGroup(String group) {
+bool Hdf5File::CreateGroup(String group, bool change) {
 	hid_t group_id = Last(group_ids);
 
     hid_t id = H5Gcreate2(group_id, group, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     if (id < 0) 
         return false;
+
+	if (change) {
+		hid_t ngroup_id = H5Oopen(group_id, ~group, H5P_DEFAULT);
+		group_ids << ngroup_id;
+	}
 
 	H5Gclose(id);
 
