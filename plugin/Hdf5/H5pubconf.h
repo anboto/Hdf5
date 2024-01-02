@@ -24,6 +24,8 @@
 #define __GNU_SOURCE
 #include <dlfcn.h>
 #include <dirent.h>
+#include <unistd.h>
+#include <sys/time.h>
 #endif
 
 /* Define if using MinGW */

@@ -157,6 +157,7 @@ H5_now(void)
     }
 #else  /* H5_HAVE_GETTIMEOFDAY */
     now = HDtime(NULL);
+    
 #endif /* H5_HAVE_GETTIMEOFDAY */
 
     return (now);
