@@ -313,7 +313,7 @@ void Hdf5File::GetDouble(String name, Vector<double> &data) {
 	if (clss != H5T_FLOAT)
 		throw Exc("Dataset is not double");
 	
-	data.SetCount(dims[0]);
+	data.SetCount(int(dims[0]));
 	if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, data.begin()) < 0) 
 		throw Exc("Impossible to read data");
 }
@@ -336,7 +336,7 @@ void Hdf5File::GetDouble(String name, Eigen::MatrixXd &data) {
 	if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, d.begin()) < 0) 
 		throw Exc("Impossible to read data");
 	
-	CopyRowMajor(d, dims[0], dims[1], data);
+	CopyRowMajor(d, int(dims[0]), int(dims[1]), data);
 }
 
 void Hdf5File::GetDouble(String name, Buffer<double> &d, MultiDimMatrixIndex &indx) {
@@ -348,7 +348,7 @@ void Hdf5File::GetDouble(String name, Buffer<double> &d, MultiDimMatrixIndex &in
 	
 	indx.SetNumAxis(dims.size());
 	for (int i = 0; i < dims.size(); ++i)
-		indx.SetAxisDim(i, dims[i]);
+		indx.SetAxisDim(i, int(dims[i]));
 	
 	H5T_class_t clss = H5Tget_class(datatype_id);
 	if (clss != H5T_FLOAT)
