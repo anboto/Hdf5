@@ -5,6 +5,7 @@
 
 #include <plugin/Hdf5/src/hdf5.h>
 #include <Eigen/Eigen.h>
+#include <ScatterDraw/MultiDimMatrixIndex.h>
 
 namespace Upp {
 
@@ -114,13 +115,15 @@ public:
 	void GetDouble(String name, Eigen::VectorXd &data);
 	void GetDouble(String name, Vector<double> &data);
 	void GetDouble(String name, Eigen::MatrixXd &data);
+	void GetDouble(String name, Buffer<double> &d, MultiDimMatrixIndex &indx);
 	
 	Hdf5File &Set(String name, int d);
 	Hdf5File &Set(String name, double d);
 	Hdf5File &Set(String name, String d);
-	Hdf5File &Set(String name, Eigen::VectorXd &d);
-	Hdf5File &Set(String name, Vector<double> &d);
-	Hdf5File &Set(String name, Eigen::MatrixXd &d);
+	Hdf5File &Set(String name, const Eigen::VectorXd &d);
+	Hdf5File &Set(String name, const Vector<double> &d);
+	Hdf5File &Set(String name, const Eigen::MatrixXd &d);
+	Hdf5File &Set(String name, const Buffer<double> &d, const MultiDimMatrixIndex &indx);
 	
 	Hdf5File &SetDescription(String description);
 	Hdf5File &SetUnits(String units);
