@@ -158,9 +158,12 @@ public:
 			Delete(name);
 			
 		Buffer<hsize_t> dims(Rank);
-		int sz = 1;
+		Vector<int> dimensions(Rank);
+		hsize_t sz = 1;
 		for (int i = 0; i < Rank; ++i) 
-			sz *= dims[i] = d.size(i);
+			sz *= dims[i] = d.dimension(i);
+		for (int i = 0; i < Rank; ++i) 
+			dimensions[i] = int(d.dimension(i));
 	    HidS dataspace_id = H5Screate_simple(Rank, dims, NULL);
 	    if (dataspace_id < 0) 
 	        throw Exc("Error creating dataspace");
@@ -169,7 +172,7 @@ public:
 	        throw Exc("Error creating dataset");
 		
 		Buffer<double> d_row(sz);
-		ColMajorToRowMajor(d.begin(), ~d_row, dims);
+		ColMajorToRowMajor(d.data(), ~d_row, dimensions);
 		
 	    if (H5Dwrite(dts_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, ~d_row) < 0) 
 	        throw Exc("Error writing data to dataset");

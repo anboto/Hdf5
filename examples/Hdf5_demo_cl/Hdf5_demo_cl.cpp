@@ -281,6 +281,9 @@ CONSOLE_APP_MAIN
 				Eigen::MatrixXd a(2, 3);
 				a << 1, 2, 3, 11, 22, 33;
 				hfile.Set("matrix_double", a).SetDescription("This is matrix of double").SetUnits("kg-m^2 (rotation); kg (translation)");
+				Eigen::Tensor<double, 4> m(2, 3, 7, 1);
+				m(0, 2, 5, 0) = 123.45;
+				hfile.Set<4>("multi_matrix", m);
 			}
 			{
 				Hdf5File hfile;
@@ -299,6 +302,13 @@ CONSOLE_APP_MAIN
 				hfile.GetDouble("matrix_double", m);
 				VERIFY(m(1, 1) == 22);
 				VERIFY(m(1, 2) == 33);
+				MultiDimMatrixIndex icol(2,3, 7, 1);
+				int ic = icol(0, 2, 5, 0);
+				MultiDimMatrixIndexRowMajor irow(2, 3, 7, 1);
+				int ir = irow(0, 2, 5, 0);
+				MultiDimMatrixRowMajor<double> b;
+				hfile.GetDouble("multi_matrix", b);
+				VERIFY(b(0, 2, 5, 0) == 123.45);
 			}
 			IterateDataset(file, true);
 		} else {
