@@ -268,7 +268,7 @@ CONSOLE_APP_MAIN
 			}
 			UppLog() << "\nHDF5 wrapper test\n";
 			String file = "datalib.h5";
-			{			
+			{
 				Hdf5File hfile;
 				
 				if (!hfile.Create(file))
@@ -282,7 +282,7 @@ CONSOLE_APP_MAIN
 				a << 1, 2, 3, 11, 22, 33;
 				hfile.Set("matrix_double", a).SetDescription("This is matrix of double").SetUnits("kg-m^2 (rotation); kg (translation)");
 			}
-			{			
+			{
 				Hdf5File hfile;
 				
 				if (!hfile.Open(file))

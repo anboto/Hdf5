@@ -5,7 +5,7 @@
 
 #include <plugin/Hdf5/src/hdf5.h>
 #include <Eigen/Eigen.h>
-#include <ScatterDraw/MultiDimMatrixIndex.h>
+#include <Eigen/MultiDimMatrixIndex.h>
 
 namespace Upp {
 
@@ -101,10 +101,11 @@ public:
 	
 	bool Delete(String name);
 	
-	void GetType(String name, H5T_class_t &type, Vector<hsize_t> &dims);
+	void GetType(String name, H5T_class_t &type, Vector<int> &dims);
+	
 	H5T_class_t GetType(String name) {
 		H5T_class_t type;
-		Vector<hsize_t> dummy;
+		Vector<int> dummy;
 		GetType(name, type, dummy);
 		return type;
 	}
@@ -115,15 +116,66 @@ public:
 	void GetDouble(String name, Eigen::VectorXd &data);
 	void GetDouble(String name, Vector<double> &data);
 	void GetDouble(String name, Eigen::MatrixXd &data);
-	void GetDouble(String name, Buffer<double> &d, MultiDimMatrixIndex &indx);
+	void GetDouble(String name, MultiDimMatrixRowMajor<double> &d);
+	template <int Rank>
+	void GetDouble(String name, Eigen::Tensor<double, Rank> &data) {
+		int sz;
+		HidO obj_id;
+		hid_t datatype_id, dspace;
+		Vector<int> dims;
+		GetData0(name, obj_id, datatype_id, dspace, sz, dims);
+	
+		if (dims.size() != Rank)
+			throw Exc(Format("Dimension different than %d", Rank));
+	
+		H5T_class_t clss = H5Tget_class(datatype_id);
+		if (clss != H5T_FLOAT)
+			throw Exc("Dataset is not double");
+		
+		Buffer<double> d_row(sz), d_col(sz);
+		if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, d_row.Get()) < 0) 
+			throw Exc("Impossible to read data");		
+
+		RowMajorToColMajor(~d_row, ~d_col, dims);
+		
+		Eigen::array<Eigen::Index, Rank> dimensions;
+		for (int i = 0; i < Rank; ++i)
+			dimensions[i] = dims[i];
+
+		data = Eigen::TensorMap<Eigen::Tensor<double, Rank>>(~d_col, dimensions);
+	}
 	
 	Hdf5File &Set(String name, int d);
 	Hdf5File &Set(String name, double d);
-	Hdf5File &Set(String name, String d);
+	Hdf5File &Set(String name, const char *d);
 	Hdf5File &Set(String name, const Eigen::VectorXd &d);
 	Hdf5File &Set(String name, const Vector<double> &d);
 	Hdf5File &Set(String name, const Eigen::MatrixXd &d);
-	Hdf5File &Set(String name, const Buffer<double> &d, const MultiDimMatrixIndex &indx);
+	Hdf5File &Set(String name, const MultiDimMatrixRowMajor<double> &d);
+	template <int Rank>
+	Hdf5File &Set(String name, const Eigen::Tensor<double, Rank> &d) {
+		if (ExistDataset(name))
+			Delete(name);
+			
+		Buffer<hsize_t> dims(Rank);
+		int sz = 1;
+		for (int i = 0; i < Rank; ++i) 
+			sz *= dims[i] = d.size(i);
+	    HidS dataspace_id = H5Screate_simple(Rank, dims, NULL);
+	    if (dataspace_id < 0) 
+	        throw Exc("Error creating dataspace");
+	    
+	    if ((dts_id = H5Dcreate2(Last(group_ids), name, H5T_NATIVE_DOUBLE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT)) < 0)
+	        throw Exc("Error creating dataset");
+		
+		Buffer<double> d_row(sz);
+		ColMajorToRowMajor(d.begin(), ~d_row, dims);
+		
+	    if (H5Dwrite(dts_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, ~d_row) < 0) 
+	        throw Exc("Error writing data to dataset");
+	    
+	    return *this;		
+	}
 	
 	Hdf5File &SetDescription(String description);
 	Hdf5File &SetUnits(String units);
@@ -136,7 +188,7 @@ private:
 	HidD dts_id;
 	Vector<hid_t> group_ids;
 	
-	void GetData0(String name, HidO &obj_id, hid_t &datatype_id, hid_t &dspace, int &sz, Vector<hsize_t> &dims);
+	void GetData0(String name, HidO &obj_id, hid_t &datatype_id, hid_t &dspace, int &sz, Vector<int> &dims);
 	static void SetAttributes0(hid_t dset_id, String attribute, String val);
     static void SetAttributes(hid_t dset_id, String description, String units);
 };

@@ -168,7 +168,7 @@ void Hdf5File::UpGroup() {
 	group_ids.Remove(group_ids.size()-1);
 }
 
-void Hdf5File::GetData0(String name, HidO &obj_id, hid_t &datatype_id, hid_t &dspace, int &sz, Vector<hsize_t> &dims) {
+void Hdf5File::GetData0(String name, HidO &obj_id, hid_t &datatype_id, hid_t &dspace, int &sz, Vector<int> &dims) {
 	hid_t group_id = Last(group_ids);
 	
 	if (H5Lexists(group_id, ~name, H5P_DEFAULT) < 0) 
@@ -189,15 +189,16 @@ void Hdf5File::GetData0(String name, HidO &obj_id, hid_t &datatype_id, hid_t &ds
 	dspace = H5Dget_space(obj_id);
 	const int ndims = H5Sget_simple_extent_ndims(dspace);
 	
+	Vector<hsize_t> _dims(ndims);
+	H5Sget_simple_extent_dims(dspace, _dims.begin(), NULL);
+	
 	dims.SetCount(ndims);
-	H5Sget_simple_extent_dims(dspace, dims.begin(), NULL);
-	   
     sz = 1;
     for (int id = 0; id < ndims; ++id) 
-        sz *= int(dims[id]);
+        sz *= dims[id] = int(_dims[id]);
 }
 
-void Hdf5File::GetType(String name, H5T_class_t &type, Vector<hsize_t> &dims) {
+void Hdf5File::GetType(String name, H5T_class_t &type, Vector<int> &dims) {
 	int sz;
 	HidO obj_id;
 	hid_t datatype_id, dspace;
@@ -209,7 +210,7 @@ int Hdf5File::GetInt(String name) {
 	int sz;
 	HidO obj_id;
 	hid_t datatype_id, dspace;
-	Vector<hsize_t> dims;
+	Vector<int> dims;
 	GetData0(name, obj_id, datatype_id, dspace, sz, dims);
 	
 	H5T_class_t clss = H5Tget_class(datatype_id);
@@ -229,7 +230,7 @@ double Hdf5File::GetDouble(String name) {
 	int sz;
 	HidO obj_id;
 	hid_t datatype_id, dspace;
-	Vector<hsize_t> dims;
+	Vector<int> dims;
 	GetData0(name, obj_id, datatype_id, dspace, sz, dims);
 
 	H5T_class_t clss = H5Tget_class(datatype_id);
@@ -249,7 +250,7 @@ String Hdf5File::GetString(String name) {
 	int sz;
 	HidO obj_id;
 	hid_t datatype_id, dspace;
-	Vector<hsize_t> dims;
+	Vector<int> dims;
 	GetData0(name, obj_id, datatype_id, dspace, sz, dims);
 	
 	H5T_class_t clss = H5Tget_class(datatype_id);
@@ -284,7 +285,7 @@ void Hdf5File::GetDouble(String name, Eigen::VectorXd &data) {
 	int sz;
 	HidO obj_id;
 	hid_t datatype_id, dspace;
-	Vector<hsize_t> dims;
+	Vector<int> dims;
 	GetData0(name, obj_id, datatype_id, dspace, sz, dims);
 	
 	if (!(dims.size() == 1) && (dims.size() == 2 && dims[0] != 1 && dims[1] != 1))
@@ -303,7 +304,7 @@ void Hdf5File::GetDouble(String name, Vector<double> &data) {
 	int sz;
 	HidO obj_id;
 	hid_t datatype_id, dspace;
-	Vector<hsize_t> dims;
+	Vector<int> dims;
 	GetData0(name, obj_id, datatype_id, dspace, sz, dims);
 	
 	if (!(dims.size() == 1) && (dims.size() == 2 && dims[0] != 1 && dims[1] != 1))
@@ -322,7 +323,7 @@ void Hdf5File::GetDouble(String name, Eigen::MatrixXd &data) {
 	int sz;
 	HidO obj_id;
 	hid_t datatype_id, dspace;
-	Vector<hsize_t> dims;
+	Vector<int> dims;
 	GetData0(name, obj_id, datatype_id, dspace, sz, dims);
 	
 	if (dims.size() != 2)
@@ -332,29 +333,26 @@ void Hdf5File::GetDouble(String name, Eigen::MatrixXd &data) {
 	if (clss != H5T_FLOAT)
 		throw Exc("Dataset is not double");
 	
-	Vector<double> d(sz);
-	if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, d.begin()) < 0) 
+	Buffer<double> d(sz);
+	if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, d.Get()) < 0) 
 		throw Exc("Impossible to read data");
 	
-	CopyRowMajor(d, int(dims[0]), int(dims[1]), data);
+	CopyRowMajor(d.Get(), int(dims[0]), int(dims[1]), data);
 }
 
-void Hdf5File::GetDouble(String name, Buffer<double> &d, MultiDimMatrixIndex &indx) {
+void Hdf5File::GetDouble(String name, MultiDimMatrixRowMajor<double> &d) {
 	int sz;
 	HidO obj_id;
 	hid_t datatype_id, dspace;
-	Vector<hsize_t> dims;
+	Vector<int> dims;
 	GetData0(name, obj_id, datatype_id, dspace, sz, dims);
 	
-	indx.SetNumAxis(dims.size());
-	for (int i = 0; i < dims.size(); ++i)
-		indx.SetAxisDim(i, int(dims[i]));
+	d.Resize(dims);
 	
 	H5T_class_t clss = H5Tget_class(datatype_id);
 	if (clss != H5T_FLOAT)
 		throw Exc("Dataset is not double");
 	
-	d.Alloc(sz);
 	if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, d.begin()) < 0) 
 		throw Exc("Impossible to read data");
 }
@@ -420,7 +418,7 @@ Hdf5File &Hdf5File::Set(String name, double d) {
     return *this;
 }
 
-Hdf5File &Hdf5File::Set(String name, String d) {
+Hdf5File &Hdf5File::Set(String name, const char *d) {
 	if (ExistDataset(name))
 		Delete(name);
 		
@@ -435,8 +433,7 @@ Hdf5File &Hdf5File::Set(String name, String d) {
     if ((dts_id = H5Dcreate2(Last(group_ids), name, datatype_id, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT)) < 0)
         throw Exc("Error creating dataset");
 
-	const char *p = d.begin();
-    if (H5Dwrite(dts_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, &p) < 0) 
+    if (H5Dwrite(dts_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, &d) < 0) 
         throw Exc("Error writing data to dataset");
     
     return *this;
@@ -503,21 +500,21 @@ Hdf5File &Hdf5File::Set(String name, const Eigen::MatrixXd &data) {
     return *this;
 }
 
-Hdf5File &Hdf5File::Set(String name, const Buffer<double> &d, const MultiDimMatrixIndex &indx) {
+Hdf5File &Hdf5File::Set(String name, const MultiDimMatrixRowMajor<double> &d) {
 	if (ExistDataset(name))
 		Delete(name);
 		
-	Buffer<hsize_t> dims(indx.GetNumAxis());
-	for (int i = 0; i < indx.GetNumAxis(); ++i)
-		dims[i] = indx.size(i);
-    HidS dataspace_id = H5Screate_simple(indx.GetNumAxis(), dims, NULL);
+	Buffer<hsize_t> dims(d.GetNumAxis());
+	for (int i = 0; i < d.GetNumAxis(); ++i)
+		dims[i] = d.size(i);
+    HidS dataspace_id = H5Screate_simple(d.GetNumAxis(), dims, NULL);
     if (dataspace_id < 0) 
         throw Exc("Error creating dataspace");
     
     if ((dts_id = H5Dcreate2(Last(group_ids), name, H5T_NATIVE_DOUBLE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT)) < 0)
         throw Exc("Error creating dataset");
 	
-    if (H5Dwrite(dts_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, d) < 0) 
+    if (H5Dwrite(dts_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, d.begin()) < 0) 
         throw Exc("Error writing data to dataset");
     
     return *this;
