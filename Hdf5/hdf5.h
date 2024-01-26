@@ -160,10 +160,10 @@ public:
 		Buffer<hsize_t> dims(Rank);
 		Vector<int> dimensions(Rank);
 		hsize_t sz = 1;
-		for (int i = 0; i < Rank; ++i) 
+		for (int i = 0; i < Rank; ++i) {
 			sz *= dims[i] = d.dimension(i);
-		for (int i = 0; i < Rank; ++i) 
 			dimensions[i] = int(d.dimension(i));
+		}
 	    HidS dataspace_id = H5Screate_simple(Rank, dims, NULL);
 	    if (dataspace_id < 0) 
 	        throw Exc("Error creating dataspace");
