@@ -271,8 +271,7 @@ CONSOLE_APP_MAIN
 			{
 				Hdf5File hfile;
 				
-				if (!hfile.Create(file))
-					throw Exc("Problem creating file");
+				hfile.Create(file);
 				
 				hfile.CreateGroup("simulation_parameters", true);
 				hfile.Set("number_integer", 23).SetDescription("This is an integer").SetUnits("m");
@@ -288,8 +287,7 @@ CONSOLE_APP_MAIN
 			{
 				Hdf5File hfile;
 				
-				if (!hfile.Open(file))
-					throw Exc("Problem opening file");
+				hfile.Open(file);
 				
 				hfile.ChangeGroup("simulation_parameters");
 				int in = hfile.GetInt("number_integer");
@@ -311,6 +309,7 @@ CONSOLE_APP_MAIN
 				VERIFY(b(0, 2, 5, 0) == 123.45);
 			}
 			IterateDataset(file, true);
+			UppLog() << "\nAll tests OK\n";
 		} else {
 			String file = command[0];
 			

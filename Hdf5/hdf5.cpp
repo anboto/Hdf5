@@ -12,6 +12,8 @@ void Hdf5File::Close() {
 	for (int i = group_ids.size()-1; i >= 0; --i)
 		H5Gclose(group_ids[i]);
 	
+	group_ids.Clear();
+	
 	dts_id.Close();
 	
 	if (file_id >= 0) {
@@ -22,37 +24,37 @@ void Hdf5File::Close() {
 	}
 }
 
-bool Hdf5File::Open(String file, unsigned mode) {
+void Hdf5File::Open(String file, unsigned mode) {
 	Close();
 	
 	if (!FileExists(file))
-		return false;
+		throw Exc(Format("File '%s' does not exist", file));
 	
     file_id = H5Fopen(file, mode, H5P_DEFAULT);
     if (file_id < 0) 
-        return false;
+        throw Exc(Format("Impossible to open file '%s'", file));
     
     hid_t group_id = H5Gopen2(file_id, "/", H5P_DEFAULT);
     if (group_id < 0) 
         throw Exc("Unable to open root group");
 	group_ids << group_id;
-	
-	return true;
 }
 
-bool Hdf5File::Create(String file) {
+bool Hdf5File::IsOpened() {
+	return file_id >= 0 && !group_ids.IsEmpty();
+}
+
+void Hdf5File::Create(String file) {
 	Close();
 	
     file_id = H5Fcreate(file, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     if (file_id < 0) 
-        return false;	
+        throw Exc("Unable to create file");	
 
     hid_t group_id = H5Gopen2(file_id, "/", H5P_DEFAULT);
     if (group_id < 0) 
         throw Exc("Unable to open root group");
 	group_ids << group_id;
-	
-	return true;
 }
 
 bool Hdf5File::CreateGroup(String group, bool change) {

@@ -83,8 +83,9 @@ public:
 	Hdf5File(String file)	{Open(file);}
 	~Hdf5File()				{Close();}
 	
-	bool Create(String file);		
-	bool Open(String file, unsigned mode = H5F_ACC_RDWR);
+	void Create(String file);		
+	void Open(String file, unsigned mode = H5F_ACC_RDWR);
+	bool IsOpened();
 	void Close();
 	
 	bool ChangeGroup(String group);

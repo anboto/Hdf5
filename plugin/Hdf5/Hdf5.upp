@@ -1,5 +1,7 @@
 description "HDF5 Hierarchical Data Format (HDF) library wrapper\37744,169,203";
 
+noblitz;
+
 options(BUILDER_OPTION) NOWARNINGS;
 
 uses
@@ -16,13 +18,33 @@ include
 
 file
 	Copying,
+	src\H5DS.c,
 	H5pubconf.h,
+	src\H5LT.c,
 	H5build_settings.c,
 	src\H5.c,
 	src\H5A.c,
 	src\H5Abtree2.c,
+	src\H5DSfc.c,
+	src\H5LTanalyze.c,
 	src\H5AC.c,
 	src\H5ACdbg.c,
+	src\H5Af.c,
+	src\H5LTparse.c,
+	src\H5DSfc.c,
+	src\H5Df.c,
+	src\H5Ef.c,
+	src\H5f90kit.c,
+	src\H5Ff.c,
+	src\H5Gf.c,
+	src\H5If.c,
+	src\H5Lf.c,
+	src\H5Of.c,
+	src\H5Pf.c,
+	src\H5Rf.c,
+	src\H5Sf.c,
+	src\H5Tf.c,
+	src\H5Zf.c,
 	src\H5ACmodule.h,
 	src\H5ACmpio.c,
 	src\H5ACpkg.h,
