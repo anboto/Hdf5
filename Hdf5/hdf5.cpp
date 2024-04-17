@@ -35,7 +35,7 @@ void Hdf5File::Open(String file, unsigned mode) {
         throw Exc(Format("Impossible to open file '%s'", file));
     
     hid_t group_id = H5Gopen2(file_id, "/", H5P_DEFAULT);
-    if (group_id < 0) 
+	if (group_id < 0) 
         throw Exc("Unable to open root group");
 	group_ids << group_id;
 }
@@ -52,7 +52,7 @@ void Hdf5File::Create(String file) {
         throw Exc("Unable to create file");	
 
     hid_t group_id = H5Gopen2(file_id, "/", H5P_DEFAULT);
-    if (group_id < 0) 
+	if (group_id < 0) 
         throw Exc("Unable to open root group");
 	group_ids << group_id;
 }
@@ -61,7 +61,7 @@ bool Hdf5File::CreateGroup(String group, bool change) {
 	hid_t group_id = Last(group_ids);
 
     hid_t id = H5Gcreate2(group_id, group, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    if (id < 0) 
+	if (id < 0) 
         return false;
 
 	if (change) {
@@ -487,10 +487,10 @@ Hdf5File &Hdf5File::Set(String name, const Eigen::MatrixXd &data) {
 	dims[0] = data.rows();
 	dims[1] = data.cols();
     HidS dataspace_id = H5Screate_simple(2, dims, NULL);
-    if (dataspace_id < 0) 
+	if (dataspace_id < 0) 
         throw Exc("Error creating dataspace");
     
-    if ((dts_id = H5Dcreate2(Last(group_ids), name, H5T_NATIVE_DOUBLE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT)) < 0)
+	if ((dts_id = H5Dcreate2(Last(group_ids), name, H5T_NATIVE_DOUBLE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT)) < 0)
         throw Exc("Error creating dataset");
 	
 	Vector<double> d;
@@ -530,8 +530,9 @@ String Hdf5File::GetLastError() {
 		str->Cat(err_desc->desc);
 	    return 0;
 	};	
-	herr_t eee = H5Ewalk2(H5E_DEFAULT, H5E_WALK_UPWARD, WalkCallback, &str);
-
+	if (H5Ewalk2(H5E_DEFAULT, H5E_WALK_UPWARD, WalkCallback, &str))
+		throw Exc("Error getting last error");
+	
     return str;
 }
 

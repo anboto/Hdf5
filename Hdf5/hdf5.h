@@ -167,11 +167,11 @@ public:
 			dimensions[i] = int(d.dimension(i));
 		}
 	    HidS dataspace_id = H5Screate_simple(Rank, dims, NULL);
-	    if (dataspace_id < 0) 
-	        throw Exc("Error creating dataspace");
+		if (dataspace_id < 0) 
+			throw Exc("Error creating dataspace");
 	    
-	    if ((dts_id = H5Dcreate2(Last(group_ids), name, H5T_NATIVE_DOUBLE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT)) < 0)
-	        throw Exc("Error creating dataset");
+		if ((dts_id = H5Dcreate2(Last(group_ids), name, H5T_NATIVE_DOUBLE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT)) < 0)
+			throw Exc("Error creating dataset");
 		
 		Buffer<double> d_row(sz);
 		ColMajorToRowMajor(d.data(), ~d_row, dimensions);
