@@ -6,7 +6,7 @@
 #include <plugin/Hdf5/src/hdf5.h>
 #include <plugin/Hdf5/src/H5Fpublic.h>
 #include <Eigen/Eigen.h>
-#include <Eigen/MultiDimMatrixIndex.h>
+#include <Eigen/MultiDimMatrix.h>
 
 namespace Upp {
 
