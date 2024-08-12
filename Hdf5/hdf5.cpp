@@ -174,19 +174,19 @@ void Hdf5File::GetData0(String name, HidO &obj_id, hid_t &datatype_id, hid_t &ds
 	hid_t group_id = Last(group_ids);
 	
 	if (H5Lexists(group_id, ~name, H5P_DEFAULT) < 0) 
-		throw Exc("Dataset not found");
+		throw Exc(Format("Dataset '%s' not found", name));
 		
   	obj_id = H5Oopen(group_id, ~name, H5P_DEFAULT);
     H5O_info2_t oinfo;
     if (H5Oget_info(obj_id, &oinfo, H5O_INFO_BASIC) < 0) 
-        throw Exc("Dataset info not found");
+        throw Exc(Format("Dataset '%s' info not found", name));
         
     if (oinfo.type != H5O_TYPE_DATASET)
-        throw Exc("It is not a dataset");
+        throw Exc(Format("'%s' is not a dataset", name));
     
     datatype_id = H5Dget_type(obj_id);
 	if (datatype_id < 0)
-		throw Exc("Dataset type is unknown");
+		throw Exc(Format("Dataset '%s' type is unknown", name));
 		
 	dspace = H5Dget_space(obj_id);
 	const int ndims = H5Sget_simple_extent_ndims(dspace);
