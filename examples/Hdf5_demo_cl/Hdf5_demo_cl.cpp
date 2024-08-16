@@ -259,7 +259,7 @@ CONSOLE_APP_MAIN
 		if (command.GetCount() < 2) {
 			UppLog() << "\nHDF5 library test\n";
 			{
-				String file = "data.h5";
+				String file = AppendFileName(GetExeFolder(), "data.h5");
 			
 				CreateDataset(file);
 				WriteDataset(file);
@@ -267,7 +267,7 @@ CONSOLE_APP_MAIN
 				ReadDataset(file);
 			}
 			UppLog() << "\nHDF5 wrapper test\n";
-			String file = "datalib.h5";
+			String file = AppendFileName(GetExeFolder(), "datalib.h5");
 			{
 				Hdf5File hfile;
 				
