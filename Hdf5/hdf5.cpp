@@ -19,7 +19,7 @@ void Hdf5File::Close() {
 	if (file_id >= 0) {
 		ssize_t num_tot = H5Fget_obj_count(file_id, H5F_OBJ_ALL);
 		if (num_tot != 1)
-			throw Exc("Unclosed objects");
+			throw Exc("HDF: Unclosed objects");
 		H5Fclose(file_id);
 	}
 }
@@ -28,15 +28,15 @@ void Hdf5File::Open(String file, unsigned mode) {
 	Close();
 	
 	if (!FileExists(file))
-		throw Exc(Format("File '%s' does not exist", file));
+		throw Exc(Format("HDF: File '%s' does not exist", file));
 	
     file_id = H5Fopen(file, mode, H5P_DEFAULT);
     if (file_id < 0) 
-        throw Exc(Format("Impossible to open file '%s'", file));
+        throw Exc(Format("HDF: Impossible to open file '%s'", file));
     
     hid_t group_id = H5Gopen2(file_id, "/", H5P_DEFAULT);
 	if (group_id < 0) 
-        throw Exc("Unable to open root group");
+        throw Exc("HDF: Unable to open root group");
 	group_ids << group_id;
 }
 
@@ -49,11 +49,11 @@ void Hdf5File::Create(String file) {
 	
     file_id = H5Fcreate(file, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     if (file_id < 0) 
-        throw Exc("Unable to create file");	
+        throw Exc("HDF: Unable to create file");	
 
     hid_t group_id = H5Gopen2(file_id, "/", H5P_DEFAULT);
 	if (group_id < 0) 
-        throw Exc("Unable to open root group");
+        throw Exc("HDF: Unable to open root group");
 	group_ids << group_id;
 }
 
@@ -100,7 +100,7 @@ bool Hdf5File::ChangeGroup(String sgroup) {
     return false;
 }
 
-Vector<String> Hdf5File::ListGroup(bool groups, bool datasets) {
+/*Vector<String> Hdf5File::ListGroup(bool groups, bool datasets) {
 	Vector<String> ret;
 	
 	hid_t group_id = Last(group_ids);
@@ -126,6 +126,44 @@ Vector<String> Hdf5File::ListGroup(bool groups, bool datasets) {
         }
     }
 	return ret;
+}*/
+
+Vector<String> Hdf5File::ListGroup(bool groups, bool datasets) {
+	struct SIterate {
+		Vector<String> *pret;
+		bool groups, datasets;
+	};
+	auto IterateGroup = [](hid_t group_id, const char *name, const H5L_info_t *info, void *op_data)->herr_t {
+		SIterate *data = (SIterate *)op_data;
+		Vector<String> &ret = *(data->pret);
+		bool groups = data->groups, 
+			 datasets = data->datasets;
+		
+		if (groups && datasets)
+			ret << String(name);
+        else {
+        	if (H5Lexists(group_id, name, H5P_DEFAULT) >= 0) {
+	            hid_t obj_id = H5Oopen(group_id, name, H5P_DEFAULT);
+	            H5O_info2_t oinfo;
+	            if (H5Oget_info(obj_id, &oinfo, H5O_INFO_BASIC) >= 0) {
+	            	if (groups && oinfo.type == H5O_TYPE_GROUP || datasets && oinfo.type == H5O_TYPE_DATASET) 
+	            		ret << String(name);
+	            }
+	            H5Oclose(obj_id);
+        	}
+        }
+	    return 0; 
+	};
+	
+	hid_t group_id = Last(group_ids);
+	Vector<String> ret;
+	SIterate iterdata;
+	iterdata.pret = &ret;
+	iterdata.groups = groups;
+	iterdata.datasets = datasets;
+	H5Literate(group_id, H5_INDEX_NAME, H5_ITER_INC, NULL, IterateGroup, &iterdata);
+
+	return ret;	
 }
 
 bool Hdf5File::Exist(String name, bool isgroup) {
@@ -174,19 +212,19 @@ void Hdf5File::GetData0(String name, HidO &obj_id, hid_t &datatype_id, hid_t &ds
 	hid_t group_id = Last(group_ids);
 	
 	if (H5Lexists(group_id, ~name, H5P_DEFAULT) < 0) 
-		throw Exc(Format("Dataset '%s' not found", name));
+		throw Exc(Format("HDF: Dataset '%s' not found", name));
 		
   	obj_id = H5Oopen(group_id, ~name, H5P_DEFAULT);
     H5O_info2_t oinfo;
     if (H5Oget_info(obj_id, &oinfo, H5O_INFO_BASIC) < 0) 
-        throw Exc(Format("Dataset '%s' info not found", name));
+        throw Exc(Format("HDF: Dataset '%s' info not found", name));
         
     if (oinfo.type != H5O_TYPE_DATASET)
-        throw Exc(Format("'%s' is not a dataset", name));
+        throw Exc(Format("HDF: '%s' is not a dataset", name));
     
     datatype_id = H5Dget_type(obj_id);
 	if (datatype_id < 0)
-		throw Exc(Format("Dataset '%s' type is unknown", name));
+		throw Exc(Format("HDF: Dataset '%s' type is unknown", name));
 		
 	dspace = H5Dget_space(obj_id);
 	const int ndims = H5Sget_simple_extent_ndims(dspace);
@@ -217,14 +255,14 @@ int Hdf5File::GetInt(String name) {
 	
 	H5T_class_t clss = H5Tget_class(datatype_id);
 	if (clss != H5T_INTEGER)
-		throw Exc("Dataset is not integer");
+		throw Exc("HDF: Dataset is not integer");
 	
 	if (sz != 1) 
-		throw Exc("Size is not 1");
+		throw Exc("HDF: Size is not 1");
 
 	int i;
     if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, &i) < 0) 
-        throw Exc("Impossible to read data");
+        throw Exc("HDF: Impossible to read data");
     return i;
 }
 
@@ -237,14 +275,14 @@ double Hdf5File::GetDouble(String name) {
 
 	H5T_class_t clss = H5Tget_class(datatype_id);
 	if (clss != H5T_FLOAT)
-		throw Exc("Dataset is not double");
+		throw Exc("HDF: Dataset is not double");
 	
 	if (sz != 1) 
-		throw Exc("Size is not 1");
+		throw Exc("HDF: Size is not 1");
 	
 	double d;
     if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, &d) < 0) 
-        throw Exc("Impossible to read data");
+        throw Exc("HDF: Impossible to read data");
     return d;
 }
 
@@ -257,10 +295,10 @@ String Hdf5File::GetString(String name) {
 	
 	H5T_class_t clss = H5Tget_class(datatype_id);
 	if (clss != H5T_STRING)
-		throw Exc("Dataset is not string");
+		throw Exc("HDF: Dataset is not string");
 	
 	if (sz != 1) 
-		throw Exc("Size is not 1");
+		throw Exc("HDF: Size is not 1");
 	
 	hsize_t len = H5Dget_storage_size(obj_id);
     for (int id = 0; id < dims.size(); ++id) 
@@ -272,13 +310,13 @@ String Hdf5File::GetString(String name) {
         StringBuffer bstr((int)len);
 		if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, ~bstr) >= 0) 
 			return String(bstr);
-		throw Exc("Problem reading scalar string");
+		throw Exc("HDF: Problem reading scalar string");
     } else {
         hsize_t size = H5Sget_simple_extent_npoints(dspace);
     	Buffer<char *> bstr(size);
 		if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, ~bstr) >= 0) 
 			return String(bstr[0]);
-		throw Exc("Problem reading string");
+		throw Exc("HDF: Problem reading string");
     }
 	return Null;
 }
@@ -291,15 +329,15 @@ void Hdf5File::GetDouble(String name, Eigen::VectorXd &data) {
 	GetData0(name, obj_id, datatype_id, dspace, sz, dims);
 	
 	if (!(dims.size() == 1) && (dims.size() == 2 && dims[0] != 1 && dims[1] != 1))
-		throw Exc("Dimension different than one");
+		throw Exc("HDF: Dimension different than one");
 	
 	H5T_class_t clss = H5Tget_class(datatype_id);
 	if (clss != H5T_FLOAT)
-		throw Exc("Dataset is not double");
+		throw Exc("HDF: Dataset is not double");
 	
 	data.resize(dims[0]);
 	if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, data.data()) < 0) 
-		throw Exc("Impossible to read data");
+		throw Exc("HDF: Impossible to read data");
 }
 
 void Hdf5File::GetDouble(String name, Vector<double> &data) {
@@ -310,15 +348,15 @@ void Hdf5File::GetDouble(String name, Vector<double> &data) {
 	GetData0(name, obj_id, datatype_id, dspace, sz, dims);
 	
 	if (!(dims.size() == 1) && (dims.size() == 2 && dims[0] != 1 && dims[1] != 1))
-		throw Exc("Dimension different than one");
+		throw Exc("HDF: Dimension different than one");
 	
 	H5T_class_t clss = H5Tget_class(datatype_id);
 	if (clss != H5T_FLOAT)
-		throw Exc("Dataset is not double");
+		throw Exc("HDF: Dataset is not double");
 	
 	data.SetCount(int(dims[0]));
 	if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, data.begin()) < 0) 
-		throw Exc("Impossible to read data");
+		throw Exc("HDF: Impossible to read data");
 }
 
 void Hdf5File::GetDouble(String name, Eigen::MatrixXd &data) {
@@ -329,15 +367,15 @@ void Hdf5File::GetDouble(String name, Eigen::MatrixXd &data) {
 	GetData0(name, obj_id, datatype_id, dspace, sz, dims);
 	
 	if (dims.size() != 2)
-		throw Exc("Dimension different than two");
+		throw Exc("HDF: Dimension different than two");
 	
 	H5T_class_t clss = H5Tget_class(datatype_id);
 	if (clss != H5T_FLOAT)
-		throw Exc("Dataset is not double");
+		throw Exc("HDF: Dataset is not double");
 	
 	Buffer<double> d(sz);
 	if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, d.Get()) < 0) 
-		throw Exc("Impossible to read data");
+		throw Exc("HDF: Impossible to read data");
 	
 	CopyRowMajor(d.Get(), int(dims[0]), int(dims[1]), data);
 }
@@ -353,10 +391,10 @@ void Hdf5File::GetDouble(String name, MultiDimMatrixRowMajor<double> &d) {
 	
 	H5T_class_t clss = H5Tget_class(datatype_id);
 	if (clss != H5T_FLOAT)
-		throw Exc("Dataset is not double");
+		throw Exc("HDF: Dataset is not double");
 	
 	if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, d.begin()) < 0) 
-		throw Exc("Impossible to read data");
+		throw Exc("HDF: Impossible to read data");
 }
 	
 void Hdf5File::SetAttributes0(hid_t dset_id, String attribute, String val) {
@@ -366,7 +404,7 @@ void Hdf5File::SetAttributes0(hid_t dset_id, String attribute, String val) {
     hid_t attr_desc = H5Acreate2(dset_id, ~attribute, attr_type_desc, attr_id_desc, H5P_DEFAULT, H5P_DEFAULT);
     const char *p = val.begin();
     if (H5Awrite(attr_desc, attr_type_desc, &p) < 0)
-        throw Exc("Impossible to write attribute");
+        throw Exc("HDF: Impossible to write attribute");
     H5Aclose(attr_desc);
     H5Tclose(attr_type_desc);
     H5Sclose(attr_id_desc);
@@ -391,13 +429,13 @@ Hdf5File &Hdf5File::Set(String name, int d) {
 	hsize_t dims[1] = {1};
     HidS dataspace_id = H5Screate_simple(1, dims, NULL);
     if (dataspace_id < 0) 
-        throw Exc("Error creating dataspace");
+        throw Exc("HDF: Error creating dataspace");
     
     if ((dts_id = H5Dcreate2(Last(group_ids), name, H5T_NATIVE_INT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT)) < 0)
-        throw Exc("Error creating dataset");
+        throw Exc("HDF: Error creating dataset");
 
     if (H5Dwrite(dts_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &d) < 0) 
-        throw Exc("Error writing data to dataset");
+        throw Exc("HDF: Error writing data to dataset");
     
     return *this;
 }
@@ -409,13 +447,13 @@ Hdf5File &Hdf5File::Set(String name, double d) {
 	hsize_t dims[1] = {1};
     HidS dataspace_id = H5Screate_simple(1, dims, NULL);
     if (dataspace_id < 0) 
-        throw Exc("Error creating dataspace");
+        throw Exc("HDF: Error creating dataspace");
     
     if ((dts_id = H5Dcreate2(Last(group_ids), name, H5T_NATIVE_DOUBLE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT)) < 0)
-        throw Exc("Error creating dataset");
+        throw Exc("HDF: Error creating dataset");
 
     if (H5Dwrite(dts_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &d) < 0) 
-        throw Exc("Error writing data to dataset");
+        throw Exc("HDF: Error writing data to dataset");
     
     return *this;
 }
@@ -430,13 +468,13 @@ Hdf5File &Hdf5File::Set(String name, const char *d) {
 	hsize_t dims[1] = {1};
     HidS dataspace_id = H5Screate_simple(1, dims, NULL);
     if (dataspace_id < 0) 
-        throw Exc("Error creating dataspace");
+        throw Exc("HDF: Error creating dataspace");
     
     if ((dts_id = H5Dcreate2(Last(group_ids), name, datatype_id, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT)) < 0)
-        throw Exc("Error creating dataset");
+        throw Exc("HDF: Error creating dataset");
 
     if (H5Dwrite(dts_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, &d) < 0) 
-        throw Exc("Error writing data to dataset");
+        throw Exc("HDF: Error writing data to dataset");
     
     return *this;
 }
@@ -449,13 +487,13 @@ Hdf5File &Hdf5File::Set(String name, const Eigen::VectorXd &d) {
 	dims[0] = d.size();
     HidS dataspace_id = H5Screate_simple(1, dims, NULL);
     if (dataspace_id < 0) 
-        throw Exc("Error creating dataspace");
+        throw Exc("HDF: Error creating dataspace");
     
     if ((dts_id = H5Dcreate2(Last(group_ids), name, H5T_NATIVE_DOUBLE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT)) < 0)
-        throw Exc("Error creating dataset");
+        throw Exc("HDF: Error creating dataset");
 
     if (H5Dwrite(dts_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, d.data()) < 0) 
-        throw Exc("Error writing data to dataset");
+        throw Exc("HDF: Error writing data to dataset");
     
     return *this;
 }
@@ -468,13 +506,13 @@ Hdf5File &Hdf5File::Set(String name, const Vector<double> &d) {
 	dims[0] = d.size();
     HidS dataspace_id = H5Screate_simple(1, dims, NULL);
     if (dataspace_id < 0) 
-        throw Exc("Error creating dataspace");
+        throw Exc("HDF: Error creating dataspace");
     
     if ((dts_id = H5Dcreate2(Last(group_ids), name, H5T_NATIVE_DOUBLE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT)) < 0)
-        throw Exc("Error creating dataset");
+        throw Exc("HDF: Error creating dataset");
 
     if (H5Dwrite(dts_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, d.begin()) < 0) 
-        throw Exc("Error writing data to dataset");
+        throw Exc("HDF: Error writing data to dataset");
     
     return *this;
 }
@@ -488,16 +526,16 @@ Hdf5File &Hdf5File::Set(String name, const Eigen::MatrixXd &data) {
 	dims[1] = data.cols();
     HidS dataspace_id = H5Screate_simple(2, dims, NULL);
 	if (dataspace_id < 0) 
-        throw Exc("Error creating dataspace");
+        throw Exc("HDF: Error creating dataspace");
     
 	if ((dts_id = H5Dcreate2(Last(group_ids), name, H5T_NATIVE_DOUBLE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT)) < 0)
-        throw Exc("Error creating dataset");
+        throw Exc("HDF: Error creating dataset");
 	
 	Vector<double> d;
 	CopyRowMajor(data, d);
 
     if (H5Dwrite(dts_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, d.begin()) < 0) 
-        throw Exc("Error writing data to dataset");
+        throw Exc("HDF: Error writing data to dataset");
     
     return *this;
 }
@@ -511,13 +549,13 @@ Hdf5File &Hdf5File::Set(String name, const MultiDimMatrixRowMajor<double> &d) {
 		dims[i] = d.size(i);
     HidS dataspace_id = H5Screate_simple(d.GetNumAxis(), dims, NULL);
     if (dataspace_id < 0) 
-        throw Exc("Error creating dataspace");
+        throw Exc("HDF: Error creating dataspace");
     
     if ((dts_id = H5Dcreate2(Last(group_ids), name, H5T_NATIVE_DOUBLE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT)) < 0)
-        throw Exc("Error creating dataset");
+        throw Exc("HDF: Error creating dataset");
 	
     if (H5Dwrite(dts_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, d.begin()) < 0) 
-        throw Exc("Error writing data to dataset");
+        throw Exc("HDF: Error writing data to dataset");
     
     return *this;
 }
@@ -531,7 +569,7 @@ String Hdf5File::GetLastError() {
 	    return 0;
 	};	
 	if (H5Ewalk2(H5E_DEFAULT, H5E_WALK_UPWARD, WalkCallback, &str))
-		throw Exc("Error getting last error");
+		throw Exc("HDF: Error getting last error");
 	
     return str;
 }
