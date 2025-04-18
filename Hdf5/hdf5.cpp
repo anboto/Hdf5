@@ -5,8 +5,9 @@
 
 #include "hdf5.h"
 
-namespace Upp {
+#include <Functions4U/EnableWarnings.h>
 
+namespace Upp {
 
 void Hdf5File::Close() {
 	for (int i = group_ids.size()-1; i >= 0; --i)
@@ -133,7 +134,7 @@ Vector<String> Hdf5File::ListGroup(bool groups, bool datasets) {
 		Vector<String> *pret;
 		bool groups, datasets;
 	};
-	auto IterateGroup = [](hid_t group_id, const char *name, const H5L_info_t *info, void *op_data)->herr_t {
+	auto IterateGroup = [](hid_t group_id, const char *name, const H5L_info_t */*info*/, void *op_data)->herr_t {
 		SIterate *data = (SIterate *)op_data;
 		Vector<String> &ret = *(data->pret);
 		bool groups = data->groups, 
@@ -146,7 +147,7 @@ Vector<String> Hdf5File::ListGroup(bool groups, bool datasets) {
 	            hid_t obj_id = H5Oopen(group_id, name, H5P_DEFAULT);
 	            H5O_info2_t oinfo;
 	            if (H5Oget_info(obj_id, &oinfo, H5O_INFO_BASIC) >= 0) {
-	            	if (groups && oinfo.type == H5O_TYPE_GROUP || datasets && oinfo.type == H5O_TYPE_DATASET) 
+	            	if ((groups && oinfo.type == H5O_TYPE_GROUP) || (datasets && oinfo.type == H5O_TYPE_DATASET)) 
 	            		ret << String(name);
 	            }
 	            H5Oclose(obj_id);
@@ -302,7 +303,7 @@ String Hdf5File::GetString(String name) {
 	
 	hsize_t len = H5Dget_storage_size(obj_id);
     for (int id = 0; id < dims.size(); ++id) 
-		len /= dims[id];
+		len /= (hsize_t)dims[id];
     
 	H5S_class_t space_class = H5Sget_simple_extent_type(dspace);
 	
@@ -312,8 +313,8 @@ String Hdf5File::GetString(String name) {
 			return String(bstr);
 		throw Exc("HDF: Problem reading scalar string");
     } else {
-        hsize_t size = H5Sget_simple_extent_npoints(dspace);
-    	Buffer<char *> bstr(size);
+        hssize_t size = H5Sget_simple_extent_npoints(dspace);
+    	Buffer<char *> bstr((size_t)size);
 		if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, ~bstr) >= 0) 
 			return String(bstr[0]);
 		throw Exc("HDF: Problem reading string");
@@ -373,7 +374,7 @@ void Hdf5File::GetDouble(String name, Eigen::MatrixXd &data) {
 	if (clss != H5T_FLOAT)
 		throw Exc("HDF: Dataset is not double");
 	
-	Buffer<double> d(sz);
+	Buffer<double> d((size_t)sz);
 	if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, d.Get()) < 0) 
 		throw Exc("HDF: Impossible to read data");
 	
@@ -484,7 +485,7 @@ Hdf5File &Hdf5File::Set(String name, const Eigen::VectorXd &d) {
 		Delete(name);
 		
 	hsize_t dims[1];
-	dims[0] = d.size();
+	dims[0] = (hsize_t)d.size();
     HidS dataspace_id = H5Screate_simple(1, dims, NULL);
     if (dataspace_id < 0) 
         throw Exc("HDF: Error creating dataspace");
@@ -503,7 +504,7 @@ Hdf5File &Hdf5File::Set(String name, const Vector<double> &d) {
 		Delete(name);
 		
 	hsize_t dims[1];
-	dims[0] = d.size();
+	dims[0] = (hsize_t)d.size();
     HidS dataspace_id = H5Screate_simple(1, dims, NULL);
     if (dataspace_id < 0) 
         throw Exc("HDF: Error creating dataspace");
@@ -522,8 +523,8 @@ Hdf5File &Hdf5File::Set(String name, const Eigen::MatrixXd &data) {
 		Delete(name);
 		
 	hsize_t dims[2];
-	dims[0] = data.rows();
-	dims[1] = data.cols();
+	dims[0] = (hsize_t)data.rows();
+	dims[1] = (hsize_t)data.cols();
     HidS dataspace_id = H5Screate_simple(2, dims, NULL);
 	if (dataspace_id < 0) 
         throw Exc("HDF: Error creating dataspace");
@@ -544,9 +545,9 @@ Hdf5File &Hdf5File::Set(String name, const MultiDimMatrixRowMajor<double> &d) {
 	if (ExistDataset(name))
 		Delete(name);
 		
-	Buffer<hsize_t> dims(d.GetNumAxis());
+	Buffer<hsize_t> dims((hsize_t)d.GetNumAxis());
 	for (int i = 0; i < d.GetNumAxis(); ++i)
-		dims[i] = d.size(i);
+		dims[i] = (hsize_t)d.size(i);
     HidS dataspace_id = H5Screate_simple(d.GetNumAxis(), dims, NULL);
     if (dataspace_id < 0) 
         throw Exc("HDF: Error creating dataspace");
@@ -563,7 +564,7 @@ Hdf5File &Hdf5File::Set(String name, const MultiDimMatrixRowMajor<double> &d) {
 String Hdf5File::GetLastError() {
 	String str;
 
-	auto WalkCallback = [](unsigned n, const H5E_error2_t *err_desc, void *client_data) {
+	auto WalkCallback = [](unsigned /*n*/, const H5E_error2_t *err_desc, void *client_data) {
 		String *str = (String *)client_data;
 		str->Cat(err_desc->desc);
 	    return 0;
