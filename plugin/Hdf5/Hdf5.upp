@@ -1,7 +1,5 @@
 description "HDF5 Hierarchical Data Format (HDF) library wrapper\37744,169,203";
 
-noblitz;
-
 options(BUILDER_OPTION) NOWARNINGS;
 
 uses
