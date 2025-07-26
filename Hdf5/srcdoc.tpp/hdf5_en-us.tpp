@@ -8,5 +8,5 @@ Data Format (HDF)][*A2  is a file format designed to store and
 organize large amounts of data. HDF libraries allow to handle 
 this format.]&]
 [s0; [2 Hdf5 U`+`+ wrapper is a basic C`+`+ wrapper for Hdf5, updated 
-to version 1.14.3 (27/10/2023)]&]
+to version 1.14.6 (05/02/2025)]&]
 [s0; [2 A simple sample is included in examples/Hdf5`_demo`_cl package.]]]
