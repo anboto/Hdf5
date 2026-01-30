@@ -5,7 +5,6 @@
 
 #include "hdf5.h"
 
-#include <Functions4U/EnableWarnings.h>
 
 namespace Upp {
 
