@@ -7,6 +7,7 @@
 #include <plugin/Hdf5/src/H5Fpublic.h>
 #include <Eigen/Eigen.h>
 #include <Eigen/MultiDimMatrix.h>
+#include <Functions4U/Functions4U.h>
 
 namespace Upp {
 
@@ -25,7 +26,7 @@ class HidO : public Hid {
 public:
 	HidO() {}
 	HidO(hid_t _id) : Hid(_id) {};
-	~HidO() 			 {Close();}
+	~HidO() 			 	   {Close();}
 	
 	void Close() {
         if (id >= 0)
@@ -128,7 +129,7 @@ public:
 		GetData0(name, obj_id, datatype_id, dspace, sz, dims);
 	
 		if (dims.size() != Rank)
-			throw Exc(Format("Dimension different than %d", Rank));
+			throw Exc(F("Dimension different than %d", Rank));
 	
 		H5T_class_t clss = H5Tget_class(datatype_id);
 		if (clss != H5T_FLOAT)

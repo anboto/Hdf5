@@ -117,7 +117,7 @@ void IterateDataset(hid_t group_id, String parent, int indentation, bool printda
             if (H5Oget_info(obj_id, &oinfo, H5O_INFO_BASIC) >= 0) {
                 String child = parent + "/" + obj_name;
             	if (oinfo.type == H5O_TYPE_GROUP) {
-                	UppLog() << Format("%`Group: %s\n", sindentation, child);
+                	UppLog() << F("%`Group: %s\n", sindentation, child);
                 	IterateDataset(obj_id, child, indentation+2, printdata);
             	} else if (oinfo.type == H5O_TYPE_DATASET) {
             		hid_t dspace = H5Dget_space(obj_id);
@@ -134,7 +134,7 @@ void IterateDataset(hid_t group_id, String parent, int indentation, bool printda
 					}
 					if (ndims > 0)
 						sdims = "[" + sdims + "]";
-                	UppLog() << Format("%`Dataset: %s%s", sindentation, child, sdims);
+                	UppLog() << F("%`Dataset: %s%s", sindentation, child, sdims);
                 	
                  	// Get the datatype of the dataset
 				    hid_t datatype_id = H5Dget_type(obj_id);
@@ -217,9 +217,9 @@ void IterateDataset(hid_t group_id, String parent, int indentation, bool printda
 				    } else
 						UppLog() << "\n";
             	} else if (oinfo.type == H5O_TYPE_NAMED_DATATYPE) 
-                	UppLog() << Format("%sNamed data type: %s\n", sindentation, child);
+                	UppLog() << F("%sNamed data type: %s\n", sindentation, child);
             	else if (oinfo.type == H5O_TYPE_MAP) 
-                	UppLog() << Format("%sMap: %s\n", sindentation, child);
+                	UppLog() << F("%sMap: %s\n", sindentation, child);
             }
             H5Oclose(obj_id);
         }
@@ -316,7 +316,7 @@ CONSOLE_APP_MAIN
 			IterateDataset(file, command[1] == "true");
 		}
 	} catch (Exc err) {
-		UppLog() << "\n" << Format(t_("Problem found: %s"), err);
+		UppLog() << "\n" << F(t_("Problem found: %s"), err);
 		SetExitCode(-1);
 	}
 		

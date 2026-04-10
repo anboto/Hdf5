@@ -4,7 +4,8 @@ uses
 	Core,
 	plugin/Hdf5,
 	plugin/z,
-	Eigen;
+	Eigen,
+	Functions4U;
 
 options
 	-DHAVE_ZLIB;

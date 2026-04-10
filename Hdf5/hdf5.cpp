@@ -28,11 +28,11 @@ void Hdf5File::Open(String file, unsigned mode) {
 	Close();
 	
 	if (!FileExists(file))
-		throw Exc(Format("HDF: File '%s' does not exist", file));
+		throw Exc(F("HDF: File '%s' does not exist", file));
 	
     file_id = H5Fopen(file, mode, H5P_DEFAULT);
     if (file_id < 0) 
-        throw Exc(Format("HDF: Impossible to open file '%s'", file));
+        throw Exc(F("HDF: Impossible to open file '%s'", file));
     
     hid_t group_id = H5Gopen2(file_id, "/", H5P_DEFAULT);
 	if (group_id < 0) 
@@ -212,19 +212,19 @@ void Hdf5File::GetData0(String name, HidO &obj_id, hid_t &datatype_id, hid_t &ds
 	hid_t group_id = Last(group_ids);
 	
 	if (H5Lexists(group_id, ~name, H5P_DEFAULT) < 0) 
-		throw Exc(Format("HDF: Dataset '%s' not found", name));
+		throw Exc(F("HDF: Dataset '%s' not found", name));
 		
   	obj_id = H5Oopen(group_id, ~name, H5P_DEFAULT);
     H5O_info2_t oinfo;
     if (H5Oget_info(obj_id, &oinfo, H5O_INFO_BASIC) < 0) 
-        throw Exc(Format("HDF: Dataset '%s' info not found", name));
+        throw Exc(F("HDF: Dataset '%s' info not found", name));
         
     if (oinfo.type != H5O_TYPE_DATASET)
-        throw Exc(Format("HDF: '%s' is not a dataset", name));
+        throw Exc(F("HDF: '%s' is not a dataset", name));
     
     datatype_id = H5Dget_type(obj_id);
 	if (datatype_id < 0)
-		throw Exc(Format("HDF: Dataset '%s' type is unknown", name));
+		throw Exc(F("HDF: Dataset '%s' type is unknown", name));
 		
 	dspace = H5Dget_space(obj_id);
 	const int ndims = H5Sget_simple_extent_ndims(dspace);
