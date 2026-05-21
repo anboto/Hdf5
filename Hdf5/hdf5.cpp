@@ -267,23 +267,15 @@ int Hdf5File::GetInt(String name) {
 }
 
 double Hdf5File::GetDouble(String name) {
-	int sz;
-	HidO obj_id;
-	hid_t datatype_id, dspace;
-	Vector<int> dims;
-	GetData0(name, obj_id, datatype_id, dspace, sz, dims);
+	double ret;
+	GetDouble(name, ret);
+	return ret;
+}
 
-	H5T_class_t clss = H5Tget_class(datatype_id);
-	if (clss != H5T_FLOAT)
-		throw Exc("HDF: Dataset is not double");
-	
-	if (sz != 1) 
-		throw Exc("HDF: Size is not 1");
-	
-	double d;
-    if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, &d) < 0) 
-        throw Exc("HDF: Impossible to read data");
-    return d;
+float Hdf5File::GetFloat(String name) {
+	float ret;
+	GetDouble(name, ret);
+	return ret;	
 }
 
 String Hdf5File::GetString(String name) {
@@ -340,25 +332,6 @@ void Hdf5File::GetDouble(String name, Eigen::VectorXd &data) {
 		throw Exc("HDF: Impossible to read data");
 }
 
-void Hdf5File::GetDouble(String name, Vector<double> &data) {
-	int sz;
-	HidO obj_id;
-	hid_t datatype_id, dspace;
-	Vector<int> dims;
-	GetData0(name, obj_id, datatype_id, dspace, sz, dims);
-	
-	if (!(dims.size() == 1) && (dims.size() == 2 && dims[0] != 1 && dims[1] != 1))
-		throw Exc("HDF: Dimension different than one");
-	
-	H5T_class_t clss = H5Tget_class(datatype_id);
-	if (clss != H5T_FLOAT)
-		throw Exc("HDF: Dataset is not double");
-	
-	data.SetCount(int(dims[0]));
-	if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, data.begin()) < 0) 
-		throw Exc("HDF: Impossible to read data");
-}
-
 void Hdf5File::GetDouble(String name, Eigen::MatrixXd &data) {
 	int sz;
 	HidO obj_id;
@@ -380,23 +353,6 @@ void Hdf5File::GetDouble(String name, Eigen::MatrixXd &data) {
 	CopyRowMajor(d.Get(), int(dims[0]), int(dims[1]), data);
 }
 
-void Hdf5File::GetDouble(String name, MultiDimMatrixRowMajor<double> &d) {
-	int sz;
-	HidO obj_id;
-	hid_t datatype_id, dspace;
-	Vector<int> dims;
-	GetData0(name, obj_id, datatype_id, dspace, sz, dims);
-	
-	d.Resize(dims);
-	
-	H5T_class_t clss = H5Tget_class(datatype_id);
-	if (clss != H5T_FLOAT)
-		throw Exc("HDF: Dataset is not double");
-	
-	if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, d.begin()) < 0) 
-		throw Exc("HDF: Impossible to read data");
-}
-	
 void Hdf5File::SetAttributes0(hid_t dset_id, String attribute, String val) {
     hid_t attr_id_desc = H5Screate(H5S_SCALAR);
     hid_t attr_type_desc = H5Tcopy(H5T_C_S1);

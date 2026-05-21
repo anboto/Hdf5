@@ -114,14 +114,72 @@ public:
 	}
 	
 	int GetInt(String name);
+	template <typename T>
+	void GetDouble(String name, T &data) {
+		int sz;
+		HidO obj_id;
+		hid_t datatype_id, dspace;
+		Vector<int> dims;
+		GetData0(name, obj_id, datatype_id, dspace, sz, dims);
+	
+		H5T_class_t clss = H5Tget_class(datatype_id);
+		if (clss != H5T_FLOAT)
+			throw Exc("HDF: Dataset is not double");
+		
+		if (sz != 1) 
+			throw Exc("HDF: Size is not 1");
+		
+	    if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, &data) < 0) 
+	        throw Exc("HDF: Impossible to read data");
+	}
 	double GetDouble(String name);
+	float GetFloat(String name);
+	
 	String GetString(String name);
 	void GetDouble(String name, Eigen::VectorXd &data);
-	void GetDouble(String name, Vector<double> &data);
+	
+	template <typename T>
+	void GetDouble(String name, Vector<T> &data) {
+		int sz;
+		HidO obj_id;
+		hid_t datatype_id, dspace;
+		Vector<int> dims;
+		GetData0(name, obj_id, datatype_id, dspace, sz, dims);
+		
+		if (!(dims.size() == 1) && (dims.size() == 2 && dims[0] != 1 && dims[1] != 1))
+			throw Exc("HDF: Dimension different than one");
+		
+		H5T_class_t clss = H5Tget_class(datatype_id);
+		if (clss != H5T_FLOAT)
+			throw Exc("HDF: Dataset is not double");
+		
+		data.SetCount(int(dims[0]));
+		if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, data.begin()) < 0) 
+			throw Exc("HDF: Impossible to read data");
+	}
+	
 	void GetDouble(String name, Eigen::MatrixXd &data);
-	void GetDouble(String name, MultiDimMatrixRowMajor<double> &d);
-	template <int Rank>
-	void GetDouble(String name, Eigen::Tensor<double, Rank> &data) {
+	
+	template <typename T>
+	void GetDouble(String name, MultiDimMatrixRowMajor<T> &d) {
+		int sz;
+		HidO obj_id;
+		hid_t datatype_id, dspace;
+		Vector<int> dims;
+		GetData0(name, obj_id, datatype_id, dspace, sz, dims);
+		
+		d.Resize(dims);
+		
+		H5T_class_t clss = H5Tget_class(datatype_id);
+		if (clss != H5T_FLOAT)
+			throw Exc("HDF: Dataset is not float");
+		
+		if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, d.begin()) < 0) 
+			throw Exc("HDF: Impossible to read data");
+	}
+	
+	template <int Rank, typename T>
+	void GetDouble(String name, Eigen::Tensor<T, Rank> &data) {
 		int sz;
 		HidO obj_id;
 		hid_t datatype_id, dspace;
@@ -135,7 +193,7 @@ public:
 		if (clss != H5T_FLOAT)
 			throw Exc("Dataset is not double");
 		
-		Buffer<double> d_row(sz), d_col(sz);
+		Buffer<T> d_row(sz), d_col(sz);
 		if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, d_row.Get()) < 0) 
 			throw Exc("Impossible to read data");		
 
@@ -145,9 +203,27 @@ public:
 		for (int i = 0; i < Rank; ++i)
 			dimensions[i] = dims[i];
 
-		data = Eigen::TensorMap<Eigen::Tensor<double, Rank>>(~d_col, dimensions);
+		data = Eigen::TensorMap<Eigen::Tensor<T, Rank>>(~d_col, dimensions);
 	}
-	
+
+	template <typename T>
+	void GetComplex(String name, MultiDimMatrixRowMajor<std::complex<T>> &d) {
+		int sz;
+		HidO obj_id;
+		hid_t datatype_id, dspace;
+		Vector<int> dims;
+		GetData0(name, obj_id, datatype_id, dspace, sz, dims);
+		
+		d.Resize(dims);
+		
+		H5T_class_t clss = H5Tget_class(datatype_id);
+		if (clss != H5T_COMPOUND)
+			throw Exc("HDF: Dataset is not a compound");
+		
+		if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, d.begin()) < 0) 
+			throw Exc("HDF: Impossible to read data");
+	}
+		
 	Hdf5File &Set(String name, int d);
 	Hdf5File &Set(String name, double d);
 	Hdf5File &Set(String name, const char *d);

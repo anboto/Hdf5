@@ -111,7 +111,7 @@ void IterateDataset(hid_t group_id, String parent, int indentation, bool printda
         H5Lget_name_by_idx(group_id, ".", H5_INDEX_NAME, H5_ITER_NATIVE, i, obj_name, sizeof(obj_name), H5P_DEFAULT);
 
         // Check if the object is a dataset
-        if (H5Lexists(group_id, obj_name, H5P_DEFAULT) >= 0) {
+        //if (H5Lexists(group_id, obj_name, H5P_DEFAULT) > 0) {
             hid_t obj_id = H5Oopen(group_id, obj_name, H5P_DEFAULT);
             H5O_info2_t oinfo;
             if (H5Oget_info(obj_id, &oinfo, H5O_INFO_BASIC) >= 0) {
@@ -148,24 +148,22 @@ void IterateDataset(hid_t group_id, String parent, int indentation, bool printda
 					    default:			UppLog() << "(?)";
 					    }
 				    
-					    hsize_t len = H5Dget_storage_size(obj_id);
-					    for (int id = 0; id < ndims; ++id) 
-							len /= dims[id];
+					    hsize_t len = H5Tget_size(datatype_id);
 					    
 					    hsize_t sz = 1;
 				        for (int id = 0; id < ndims; ++id) 
-				            sz *= int(dims[id]);
+				            sz *= dims[id];
 					        
 					    if (sz == 1) {
 					        UppLog() << ": ";
 					        if (clss == H5T_FLOAT) {
 					            double d;
-					            if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, &d) >= 0) 
+					            if (H5Dread(obj_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &d) >= 0) 
 					                UppLog() << d;
 					        } else if (clss == H5T_INTEGER) {
-					            int i;
-					            if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, &i) >= 0) 
-					                UppLog() << i;
+					            int ii;
+					            if (H5Dread(obj_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &ii) >= 0) 
+					                UppLog() << ii;
 					    	} else if (clss == H5T_STRING) {
 						        if (space_class == H5S_SCALAR) {
 						            StringBuffer bstr((int)len);
@@ -174,10 +172,11 @@ void IterateDataset(hid_t group_id, String parent, int indentation, bool printda
 						        } else {
 						            hsize_t size = H5Sget_simple_extent_npoints(dspace);
 							    	Buffer<char *> bstr(size);
-		    						if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, ~bstr) >= 0) {
-		    							String str = String(bstr[0]);
-		    							UppLog() << "'" << str << "'";
-		    						}
+									if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, ~bstr) >= 0) {
+										String str = String(bstr[0]);
+										UppLog() << "'" << str << "'";
+										H5Dvlen_reclaim(datatype_id, dspace, H5P_DEFAULT, ~bstr);  
+									}
 						        }
 					    	}
 					        UppLog() << "\n";     
@@ -186,29 +185,29 @@ void IterateDataset(hid_t group_id, String parent, int indentation, bool printda
 					        
 					        if (clss == H5T_FLOAT) {
 					            Buffer<double> d(sz);
-					            if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, d) >= 0) {
+					            if (H5Dread(obj_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, ~d) >= 0) {
 					                for (int r = 0; r < dims[0]; ++r) {
-					                    UppLog() << sindentation << "  ";
-					                    if (ndims > 1) {
-					                		for (int c = 0; c < dims[1]; ++c)
-					                			UppLog() << d[r*dims[1] + c] << " ";
-					                		UppLog() << "\n";	
-					                    } else
-					                        UppLog() << d[r] << " ";
-					                }
+									    UppLog() << sindentation << "  ";
+									    if (ndims > 1)
+									        for (int c = 0; c < dims[1]; ++c)
+									            UppLog() << d[r*dims[1] + c] << " ";
+									    else
+									        UppLog() << d[r] << " ";
+									    UppLog() << "\n";
+									}
 					            }
 					        } else if (clss == H5T_INTEGER) {
 					            Buffer<int> d(sz);
-					            if (H5Dread(obj_id, datatype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, d) >= 0) {
+					            if (H5Dread(obj_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, ~d) >= 0) {
 					                for (int r = 0; r < dims[0]; ++r) {
-					                    UppLog() << sindentation << "  ";
-					                    if (ndims > 1) {
-					                		for (int c = 0; c < dims[1]; ++c)
-					                			UppLog() << d[r*dims[1] + c] << " ";
-					                		UppLog() << "\n";	
-					                    } else
-					                        UppLog() << d[r] << " ";
-					                }
+									    UppLog() << sindentation << "  ";
+									    if (ndims > 1)
+									        for (int c = 0; c < dims[1]; ++c)
+									            UppLog() << d[r*dims[1] + c] << " ";
+									    else
+									        UppLog() << d[r] << " ";
+									    UppLog() << "\n";  
+									}
 					            }
 					        } else  
 					        	UppLog() << "\n";     
@@ -216,13 +215,18 @@ void IterateDataset(hid_t group_id, String parent, int indentation, bool printda
 					    	UppLog() << "\n";    
 				    } else
 						UppLog() << "\n";
+				    
+				    if (dspace >= 0)
+						H5Sclose(dspace);
+				    if (datatype_id >= 0)
+						H5Tclose(datatype_id);
             	} else if (oinfo.type == H5O_TYPE_NAMED_DATATYPE) 
                 	UppLog() << F("%sNamed data type: %s\n", sindentation, child);
             	else if (oinfo.type == H5O_TYPE_MAP) 
                 	UppLog() << F("%sMap: %s\n", sindentation, child);
             }
             H5Oclose(obj_id);
-        }
+        //}
     }
 }
 	
