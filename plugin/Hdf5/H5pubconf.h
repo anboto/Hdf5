@@ -20,7 +20,7 @@
 #define H5_HAVE_WINDOWS 1
 #define H5_HAVE_WIN32_API 1
 #else
-#define H5_SIZEOF_SSIZE_T H5_SIZEOF_LONG_LONG
+//#define H5_SIZEOF_SSIZE_T H5_SIZEOF_LONG_LONG
 #define __GNU_SOURCE
 #include <dlfcn.h>
 #include <dirent.h>
@@ -74,10 +74,10 @@
 #define H5_FC_FUNC_(name,NAME) name ## _
 
 /* Define if Fortran C_LONG_DOUBLE is different from C_DOUBLE */
-#define H5_FORTRAN_C_LONG_DOUBLE_IS_UNIQUE 
+//#define H5_FORTRAN_C_LONG_DOUBLE_IS_UNIQUE 
 
 /* Define if we have Fortran C_LONG_DOUBLE */
-#define H5_FORTRAN_HAVE_C_LONG_DOUBLE 
+//#define H5_FORTRAN_HAVE_C_LONG_DOUBLE 
 
 /* Define if we have Fortran intrinsic C_SIZEOF */
 /* #undef H5_FORTRAN_HAVE_C_SIZEOF */
@@ -92,7 +92,7 @@
 /* #undef H5_FORTRAN_SIZEOF_LONG_DOUBLE */
 
 /* Define Fortran compiler ID */
-#define H5_Fortran_COMPILER_ID 
+//#define H5_Fortran_COMPILER_ID 
 
 /* Define number of valid Fortran INTEGER KINDs (must be defined before F_IKIND)*/
 /* #undef H5_H5CONFIG_F_NUM_IKIND */
@@ -349,6 +349,7 @@
 /* #undef H5_HAVE_SZLIB_H */
 
 #undef H5_HAVE_THREADSAFE
+# define H5_HAVE_THREADS 1
 
 #if defined(_WIN32) && !defined(H5_BUILT_AS_DYNAMIC_LIB)
 /* Not supported on WIN32 platforms with static linking */
@@ -383,6 +384,7 @@
 /* #undef H5_HAVE_WAITPID */
 
 /* Define to 1 if you have the 'InitOnceExecuteOnce' function. */
+#define H5_HAVE_WIN_THREADS 1
 /* #undef H5_HAVE_WIN_THREADS */
 
 /* Define if your system has window style path name. */
@@ -457,10 +459,10 @@
 #define H5_PACKAGE_VERSION "1.14.3"
 
 /* Determine the maximum decimal precision in C */
-#define H5_PAC_C_MAX_REAL_PRECISION 
+#define H5_PAC_C_MAX_REAL_PRECISION 20
 
 /* Define Fortran Maximum Real Decimal Precision */
-#define H5_PAC_FC_MAX_REAL_PRECISION 
+#define H5_PAC_FC_MAX_REAL_PRECISION 20
 
 /* The size of `bool', as computed by sizeof. */
 #define H5_SIZEOF_BOOL 1
@@ -515,17 +517,28 @@
 
 #if !defined(__APPLE__)
 
-/* The size of `size_t', as computed by sizeof. */
-#define H5_SIZEOF_SIZE_T 8
+// ---- LONG DOUBLE ----
+#ifdef _MSC_VER
+  #define H5_SIZEOF_LONG_DOUBLE 8   // MSVC: long double == double
+#else
+  #define H5_SIZEOF_LONG_DOUBLE 16  // Clang: 80-bit extended
+#endif
 
-/* The size of `ssize_t', as computed by sizeof. */
-/* #undef H5_SIZEOF_SSIZE_T */
+// ---- LONG ----
+#ifdef _MSC_VER
+  #define H5_SIZEOF_LONG 4          // MSVC: long is 32-bit even on x64
+#else
+  #define H5_SIZEOF_LONG 8          // Clang: long is 64-bit on x64
+#endif
 
-/* The size of `long', as computed by sizeof. */
-#define H5_SIZEOF_LONG 4
-
-/* The size of `long double', as computed by sizeof. */
-#define H5_SIZEOF_LONG_DOUBLE 8
+// ---- SSIZE_T ----
+#ifdef _MSC_VER
+   #include <basetsd.h>
+  typedef SSIZE_T ssize_t;          // MSVC: map to Windows SSIZE_T
+  #define H5_SIZEOF_SSIZE_T 8       // 64-bit
+#else
+  #define H5_SIZEOF_SSIZE_T 8
+#endif
 
 #else
 
@@ -616,10 +629,10 @@
 #define H5_SIZEOF_UNSIGNED 4
 
 /* The size of `_Quad', as computed by sizeof. */
-#define H5_SIZEOF__QUAD 
+#define H5_SIZEOF__QUAD 0
 
 /* The size of `__float128', as computed by sizeof. */
-#define H5_SIZEOF___FLOAT128 
+#define H5_SIZEOF___FLOAT128 0
 
 /* Define if strict file format checks are enabled */
 /* #undef H5_STRICT_FORMAT_CHECKS */
@@ -659,6 +672,7 @@
 
 /* Check exception handling functions during data conversions */
 #define H5_WANT_DCONV_EXCEPTION 1
+#define H5_SHOW_ALL_WARNINGS 1
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */

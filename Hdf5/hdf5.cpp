@@ -30,7 +30,7 @@ void Hdf5File::Open(String file, unsigned mode) {
 	if (!FileExists(file))
 		throw Exc(F("HDF: File '%s' does not exist", file));
 	
-    file_id = H5Fopen(file, mode, H5P_DEFAULT);
+    file_id = H5Fopen(ToSystemCharset(file), mode, H5P_DEFAULT);
     if (file_id < 0) 
         throw Exc(F("HDF: Impossible to open file '%s'", file));
     
@@ -47,7 +47,7 @@ bool Hdf5File::IsOpened() {
 void Hdf5File::Create(String file) {
 	Close();
 	
-    file_id = H5Fcreate(file, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    file_id = H5Fcreate(ToSystemCharset(file), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     if (file_id < 0) 
         throw Exc("HDF: Unable to create file");	
 

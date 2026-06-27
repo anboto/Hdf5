@@ -18,6 +18,7 @@ include
 
 file
 	Copying,
+	H5pubconf.h,
 	src\H5.c,
 	src\H5A.c,
 	src\H5Abtree2.c,
@@ -601,7 +602,6 @@ file
 	src\uthash.h,
 	src\H5T.c,
 	src\H5DS.c,
-	H5pubconf.h,
 	src\H5LT.c,
 	H5build_settings.c,
 	src\H5.c,
