@@ -100,34 +100,6 @@ bool Hdf5File::ChangeGroup(String sgroup) {
     return false;
 }
 
-/*Vector<String> Hdf5File::ListGroup(bool groups, bool datasets) {
-	Vector<String> ret;
-	
-	hid_t group_id = Last(group_ids);
-	
-    H5G_info_t group_info;
-    H5Gget_info(group_id, &group_info);
-	
-    for (hsize_t i = 0; i < group_info.nlinks; i++) {
-        char obj_name[256];
-        H5Lget_name_by_idx(group_id, ".", H5_INDEX_NAME, H5_ITER_NATIVE, i, obj_name, sizeof(obj_name), H5P_DEFAULT);
-        if (groups && datasets)
-			ret << String(obj_name);
-        else {
-        	if (H5Lexists(group_id, obj_name, H5P_DEFAULT) >= 0) {
-	            hid_t obj_id = H5Oopen(group_id, obj_name, H5P_DEFAULT);
-	            H5O_info2_t oinfo;
-	            if (H5Oget_info(obj_id, &oinfo, H5O_INFO_BASIC) >= 0) {
-	            	if (groups && oinfo.type == H5O_TYPE_GROUP || datasets && oinfo.type == H5O_TYPE_DATASET) 
-	            		ret << String(obj_name);
-	            }
-	            H5Oclose(obj_id);
-        	}
-        }
-    }
-	return ret;
-}*/
-
 Vector<String> Hdf5File::ListGroup(bool groups, bool datasets) {
 	struct SIterate {
 		Vector<String> *pret;

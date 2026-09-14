@@ -85,6 +85,8 @@ public:
 	Hdf5File(String file)	{Open(file);}
 	~Hdf5File()				{Close();}
 	
+	static void Init() {H5open();}   // Safe to call multiple times; only the first call works
+    
 	void Create(String file);		
 	void Open(String file, unsigned mode = H5F_ACC_RDWR);
 	bool IsOpened();
