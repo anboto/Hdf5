@@ -394,7 +394,7 @@
 #define H5_HAVE_ZLIB_H 1
 
 #ifdef _WIN32
-#define H5_ZLIB_HEADER <plugin/z/lib/zlib.h>	
+#define H5_ZLIB_HEADER <zlib.h>
 #else
 #define H5_ZLIB_HEADER <zlib.h>				
 #endif
